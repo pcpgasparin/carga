@@ -654,7 +654,7 @@ async function salvarTodos() {
     (erros > 0 ? ` ❌ ${erros} com erro.` : "");
   statusEl.className = "status-msg " + (erros > 0 ? "warn" : "ok");
 
-  // Após 2s, remove os itens salvos e limpa tudo
+  // Após 1.5s, remove os itens salvos e limpa tudo
   setTimeout(() => {
     itens = itens.filter(it => it.status !== "salvo");
     if (itens.length === 0) {
