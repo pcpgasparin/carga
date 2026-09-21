@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programação de Cargas</title>
+<link rel="stylesheet" href="stylevisualizador.css">
+</head>
+<body>
+
+<header>
+  <h1>📦 Programação de Cargas</h1>
+  <div class="controls">
+    <button id="btnDetalhado" class="tab active">Detalhado</button>
+    <button id="btnResumo" class="tab">Resumo por Dia</button>
+    <input type="date" id="filtroData" title="Filtrar a partir de">
+    <button id="btnLimparFiltro" class="btn-sec">Limpar Filtro</button>
+    <button id="btnAtualizar" class="btn-sec">🔄 Atualizar</button>
+    <button id="btnLimparPassados" class="btn-sec">🧹 Limpar dias passados</button>
+    <a href="importador.html" class="btn-nav">📥 Importador</a>
+    <span id="statusConexao" class="status">🔄 Conectando...</span>
+  </div>
+</header>
+
+<main>
+  <section id="viewDetalhado" class="view active">
+    <div class="table-wrapper">
+      <table id="tabelaDetalhado">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Nº Carga</th>
+            <th>Cód</th>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Un</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="viewResumo" class="view">
+    <div id="cardsResumo" class="cards"></div>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

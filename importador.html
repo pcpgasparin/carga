@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importador de Cargas</title>
+<link rel="stylesheet" href="styleimportador.css">
+</head>
+<body>
+
+<header>
+  <h1>📥 Importador de Cargas (PDF)</h1>
+  <div class="header-actions">
+    <a href="visualizador.html" class="btn-nav">👁 Abrir Visualizador</a>
+    <span id="statusLocal" class="status ok">🟢 Carregando...</span>
+  </div>
+</header>
+
+<main>
+  <section class="box">
+    <h2>1. Selecionar PDFs</h2>
+    <p class="help">Selecione um ou vários PDFs de uma vez. Depois defina a data de cada um.</p>
+    <input type="file" id="pdfInput" accept="application/pdf" multiple>
+    <div class="info" id="info">Nenhum arquivo selecionado.</div>
+  </section>
+
+  <section class="box">
+    <h2>2. Definir datas</h2>
+    <p class="help">Cada PDF precisa de uma data. Você pode marcar "Substituir" para sobrescrever o dia no Firebase.</p>
+
+    <div id="listaArquivos" class="lista-arquivos">
+      <p class="vazio">Nenhum PDF carregado ainda. Selecione acima.</p>
+    </div>
+
+    <label class="check-linha">
+      <input type="checkbox" id="chkSubstituirGlobal" checked>
+      <span>
+        <b>Aplicar "Substituir" em todos</b>
+        <small>Se já existir programação para a data, ela será apagada e o novo PDF passará a valer. Recomendado manter marcado.</small>
+      </span>
+    </label>
+  </section>
+
+  <section class="box">
+    <h2>3. Preview</h2>
+    <div id="preview" class="preview">
+      <p class="vazio">O preview aparecerá aqui depois de processar.</p>
+    </div>
+    <div class="actions">
+      <button id="btnProcessar" class="btn-primary">🔍 Processar todos</button>
+      <button id="btnSalvar" class="btn-success" disabled>💾 Salvar todos no Firebase</button>
+      <button id="btnLimpar" class="btn-sec">🗑 Limpar tudo</button>
+      <button id="btnZerarTudo" class="btn-danger">⚠️ Zerar Base Remota</button>
+    </div>
+    <div id="status" class="status-msg"></div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script type="module" src="importar.js"></script>
+</body>
+</html>
