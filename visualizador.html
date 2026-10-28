@@ -189,6 +189,7 @@
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
   .card-dia { background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(30,42,58,.08); overflow: hidden; border-top: 4px solid #4a90e2; transition: transform .15s ease, box-shadow .15s ease; }
   .card-dia:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,42,58,.12); }
+  .card-dia.filtrado { border-top-color: #f0a13a; }
   
   .card-header { background: #1e2a3a; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .card-header > span:first-child { font-weight: 700; font-size: .95rem; line-height: 1.3; }
@@ -206,8 +207,39 @@
   .cargas-lista { margin-top: 14px; padding-top: 12px; border-top: 1px solid #eef2f7; }
   .cargas-lista h4 { font-size: .72rem; text-transform: uppercase; color: #7a8699; margin-bottom: 8px; font-weight: 700; }
   .cargas-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-  .carga-tag { background: #eef4fc; color: #2a5d9e; padding: 4px 10px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: .78rem; font-weight: 700; border: 1px solid #d9e6f7; transition: background 0.2s; }
-  
+  .carga-tag { background: #eef4fc; color: #2a5d9e; padding: 4px 10px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: .78rem; font-weight: 700; border: 1px solid #d9e6f7; transition: all .15s ease; cursor: pointer; }
+  .carga-tag:hover { background: #dbe9fb; border-color: #a9c9ef; }
+  .carga-tag.ativa { background: #f0a13a; color: #fff; border-color: #d98a1f; box-shadow: 0 2px 6px rgba(240,161,58,.4); }
+
+  /* Faixa de filtro ativo */
+  .filtro-ativo {
+    background: #fff7e6;
+    border: 1px solid #f5d9a8;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 10px 0 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: .82rem;
+    color: #8a5a00;
+    font-weight: 600;
+  }
+  .filtro-ativo button {
+    background: #f0a13a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s ease;
+  }
+  .filtro-ativo button:hover { background: #d98a1f; }
+
   /* =========================================================
      BOTÕES DE LIXEIRA E MODAL
      ========================================================= */
@@ -307,6 +339,8 @@
   let viewAtual = "detalhado";
   let filtroData = "";
   let unsubscribe = null;
+  /* NOVO: guarda qual carga está filtrada em cada dia. Ex: { "2025-01-10": "1234" } */
+  let filtroCargaPorDia = {};
   const statusEl = document.getElementById("statusConexao");
 
   /* =========================================================
@@ -330,6 +364,24 @@
     window.toastTimeout = setTimeout(() => {
       toast.classList.remove("show");
     }, 3000);
+  };
+
+  /* =========================================================
+     NOVO: TOGGLE DO FILTRO DE CARGA (SÓ ABA RESUMO)
+     ========================================================= */
+  window.toggleFiltroCarga = function(dataISO, numCarga) {
+    const numStr = String(numCarga);
+    if (filtroCargaPorDia[dataISO] === numStr) {
+      delete filtroCargaPorDia[dataISO]; // clique na mesma carga → desfaz
+    } else {
+      filtroCargaPorDia[dataISO] = numStr; // clique em outra → troca
+    }
+    if (viewAtual === "resumo") renderResumo(getCargasFiltradas());
+  };
+
+  window.limparFiltroCarga = function(dataISO) {
+    delete filtroCargaPorDia[dataISO];
+    if (viewAtual === "resumo") renderResumo(getCargasFiltradas());
   };
 
   /* =========================================================
@@ -424,7 +476,10 @@
     
     const ok = await pedirSenha("Apagar dia", `Vai apagar TODAS as ${dia.cargas.length} carga(s) de ${fmtData(dataISO)}.`);
     if (ok) {
-      try { await deleteDoc(doc(db, "cargas", dataISO)); } 
+      try { 
+        await deleteDoc(doc(db, "cargas", dataISO)); 
+        delete filtroCargaPorDia[dataISO]; // limpa filtro do dia apagado
+      } 
       catch (e) { alert("❌ Erro: " + e.message); }
     }
   }
@@ -441,6 +496,7 @@
         const batch = writeBatch(db); 
         passados.forEach(d => batch.delete(doc(db, "cargas", d.data))); 
         await batch.commit(); 
+        passados.forEach(d => delete filtroCargaPorDia[d.data]); // limpa filtros
       } catch (e) { alert("❌ Erro: " + e.message); }
     }
   });
@@ -484,7 +540,7 @@
   }
 
   /* =========================================================
-     RENDERIZAÇÃO - TABELA DETALHADA
+     RENDERIZAÇÃO - TABELA DETALHADA (sem mudanças)
      ========================================================= */
   function renderDetalhado(lista) {
     const tbody = document.querySelector("#tabelaDetalhado tbody"); 
@@ -506,7 +562,6 @@
       const nomeCli = mapeamentoClientes[carga.num];
       const cssClasse = nomeCli ? "has-cliente" : "";
       
-      // Adicionado o onclick="mostrarCliente(...)" para funcionar no celular ao tocar
       const titleAttr = nomeCli ? `title="Cliente: ${escapeHtml(nomeCli)}" onclick="mostrarCliente('${escapeHtml(nomeCli)}')"` : "";
 
       if (!p.length) {
@@ -546,7 +601,7 @@
   }
 
   /* =========================================================
-     RENDERIZAÇÃO - CARDS DE RESUMO
+     RENDERIZAÇÃO - CARDS DE RESUMO (COM FILTRO POR CARGA)
      ========================================================= */
   function renderResumo(lista) {
     const cnt = document.getElementById("cardsResumo"); 
@@ -557,11 +612,16 @@
       return; 
     }
     
+    /* Agrupa por data, mas agora guarda também os produtos POR CARGA */
     const porData = {};
     lista.forEach(c => {
-      if (!porData[c.data]) porData[c.data] = { produtos: {}, cargas: [] };
+      if (!porData[c.data]) porData[c.data] = { produtos: {}, cargas: [], produtosPorCarga: {} };
       porData[c.data].cargas.push(c.num);
       
+      // guarda produtos individuais desta carga (para o filtro)
+      porData[c.data].produtosPorCarga[String(c.num)] = c.produtos;
+      
+      // soma total do dia (comportamento original)
       c.produtos.forEach(p => { 
         const k = `${p.codigo}||${p.nome}||${p.unidade||""}`; 
         if (!porData[c.data].produtos[k]) {
@@ -575,25 +635,52 @@
       const inf = porData[d];
       const pDia = dias.find(dia => dia.data === d)?.pesoLiquido || 0;
       
+      // Verifica se este dia tem filtro de carga ativo
+      const cargaFiltrada = filtroCargaPorDia[d];
+      const temFiltro = cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
+      
+      // Se tem filtro, monta a lista de produtos SOMENTE daquela carga (sem somar duplicados? mantemos individual)
+      let produtosParaMostrar;
+      if (temFiltro) {
+        produtosParaMostrar = (inf.produtosPorCarga[cargaFiltrada] || []).map(p => ({
+          codigo: p.codigo, nome: p.nome, unidade: p.unidade, total: Number(p.quantidade) || 0
+        }));
+      } else {
+        produtosParaMostrar = Object.values(inf.produtos);
+      }
+      
       const tags = inf.cargas.sort((a,b) => String(a).localeCompare(String(b), undefined, {numeric:true})).map(n => {
+        const nStr = String(n);
         const nomeCli = mapeamentoClientes[n];
         const cssClasse = nomeCli ? "has-cliente" : "";
+        const ativa = temFiltro && nStr === String(cargaFiltrada);
         
-        // Adicionado o onclick também nas tags da aba de Resumo
-        const titleAttr = nomeCli ? `title="Cliente: ${escapeHtml(nomeCli)}" onclick="mostrarCliente('${escapeHtml(nomeCli)}')"` : "";
+        // Agora o clique chama toggleFiltroCarga + toast do cliente (se tiver)
+        let onclick = `toggleFiltroCarga('${d}', '${nStr}')`;
+        if (nomeCli) onclick += `; mostrarCliente('${escapeHtml(nomeCli).replace(/'/g, "\\'")}')`;
         
-        return `<span class="carga-tag ${cssClasse}" ${titleAttr}>${n}</span>`;
+        const titleAttr = nomeCli ? `title="Cliente: ${escapeHtml(nomeCli)}"` : "";
+        
+        return `<span class="carga-tag ${cssClasse} ${ativa ? 'ativa' : ''}" ${titleAttr} onclick="${onclick}">${n}</span>`;
       }).join("");
 
-      const htmlProdutos = Object.values(inf.produtos).sort((a,b) => a.nome.localeCompare(b.nome)).map(p => `
+      const htmlProdutos = produtosParaMostrar.sort((a,b) => a.nome.localeCompare(b.nome)).map(p => `
         <div class="produto-linha">
           <span class="p-nome"><small class="p-cod">${p.codigo}</small>${p.nome}</span>
           <span class="qtd">${p.total.toLocaleString("pt-BR")} <small>${p.unidade||""}</small></span>
         </div>
       `).join("") || `<div class="produto-linha"><em>Sem produtos</em></div>`;
 
+      // Faixa indicando filtro ativo
+      const filtroHtml = temFiltro ? `
+        <div class="filtro-ativo">
+          <span>🔎 Filtrando carga <strong>${cargaFiltrada}</strong></span>
+          <button onclick="limparFiltroCarga('${d}')">✕ Limpar</button>
+        </div>
+      ` : "";
+
       cnt.innerHTML += `
-        <div class="card-dia">
+        <div class="card-dia ${temFiltro ? 'filtrado' : ''}">
           <div class="card-header">
             <span>${fmtData(d)} — ${diaSemana(d)}</span>
             <div class="card-header-actions">
@@ -603,6 +690,7 @@
             </div>
           </div>
           <div class="card-body">
+            ${filtroHtml}
             ${htmlProdutos}
             <div class="cargas-lista">
               <h4>Nº das Cargas</h4>
