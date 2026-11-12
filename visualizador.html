@@ -861,8 +861,6 @@
     writeBatch,
     updateDoc,
     setDoc,
-    arrayRemove,
-    arrayUnion,
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -1224,8 +1222,9 @@
     const dia = dias.find(d => d.data === dataISO);
     if (!dia) return;
 
-    const cargaParaRemover = (dia.cargas || []).find(c => String(c.numeroCarga) === String(numeroCarga));
-    if (!cargaParaRemover) return;
+    const novaListaCargas = (dia.cargas || []).filter(
+      c => String(c.numeroCarga) !== String(numeroCarga)
+    );
 
     const ok = await pedirSenha(
       "Apagar Carga",
@@ -1235,13 +1234,16 @@
     if (ok) {
       try {
         const docRef = doc(db, "cargas", dataISO);
-        await updateDoc(docRef, {
-          cargas: arrayRemove(cargaParaRemover)
-        });
         
-        // Se não restarem cargas, apaga o dia inteiro
-        if (dia.cargas.length === 1) {
+        // Se não sobrou nenhuma carga, deleta o dia inteiro
+        if (novaListaCargas.length === 0) {
            await deleteDoc(docRef);
+        } else {
+           // Salva o array sem a carga apagada
+           await setDoc(docRef, { 
+             cargas: novaListaCargas,
+             atualizadoEm: serverTimestamp()
+           }, { merge: true });
         }
       } catch (e) {
         alert("❌ Erro ao apagar carga: " + e.message);
@@ -1264,36 +1266,42 @@
     }
 
     try {
-      const batch = writeBatch(db);
-      
-      // 1. Remover do dia de origem
       const refOrigem = doc(db, "cargas", dataOrigem);
-      batch.update(refOrigem, {
-        cargas: arrayRemove(cargaParaMover)
-      });
-
-      // 2. Adicionar no dia de destino
       const refDestino = doc(db, "cargas", novaData);
-      // Verifica se o documento destino já existe na nossa lista local
-      const diaDestinoExiste = dias.some(d => d.data === novaData);
 
-      if (diaDestinoExiste) {
-        batch.update(refDestino, {
-          cargas: arrayUnion(cargaParaMover),
+      // 1. Remove do dia de origem
+      const listaOrigemAtualizada = diaOrigem.cargas.filter(c => String(c.numeroCarga) !== String(numeroCarga));
+      
+      if (listaOrigemAtualizada.length === 0) {
+        await deleteDoc(refOrigem);
+      } else {
+        await setDoc(refOrigem, { 
+          cargas: listaOrigemAtualizada,
+          atualizadoEm: serverTimestamp()
+        }, { merge: true });
+      }
+
+      // 2. Adiciona no dia de destino
+      const diaDestino = dias.find(d => d.data === novaData);
+      let listaDestinoAtualizada = [];
+      
+      if (diaDestino && diaDestino.cargas) {
+        listaDestinoAtualizada = [...diaDestino.cargas, cargaParaMover];
+      } else {
+        listaDestinoAtualizada = [cargaParaMover];
+      }
+
+      // Se o dia destino existe, usa update. Se não, usa set.
+      if (diaDestino) {
+        await updateDoc(refDestino, {
+          cargas: listaDestinoAtualizada,
           atualizadoEm: serverTimestamp()
         });
       } else {
-        batch.set(refDestino, {
-          cargas: [cargaParaMover],
+        await setDoc(refDestino, {
+          cargas: listaDestinoAtualizada,
           atualizadoEm: serverTimestamp()
         });
-      }
-
-      await batch.commit();
-
-      // Se o dia de origem ficou vazio, apaga ele
-      if (diaOrigem.cargas.length === 1) {
-        await deleteDoc(refOrigem);
       }
 
       window.mostrarCliente(`✅ Carga #${numeroCarga} transferida para ${fmtData(novaData)}!`);
@@ -1491,7 +1499,7 @@
             </td>
 
             <td class="carga-cell ${cssClasse}" ${titleAttr}>
-              ${carga.num} ${idx => idx === 0 ? acoesCarga : ''}
+              ${carga.num} ${acoesCarga}
             </td>
 
             <td colspan="4"><em>Sem produtos</em></td>
