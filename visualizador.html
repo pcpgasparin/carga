@@ -900,11 +900,14 @@
     return `${d.getFullYear()}-${mm}-${dd}`;
   };
 
-  const formatarPeso = (valor) =>
-    Number(valor || 0).toLocaleString("pt-BR", {
+  // CORRIGIDO: Removida a divisão por 100 para exibir o peso correto que vem do banco
+  const formatarPeso = (valor) => {
+    const num = Number(valor || 0);
+    return num.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+  };
 
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, c => ({
@@ -1251,7 +1254,7 @@
     }
   }
 
-    /* TRANSFERÊNCIA */
+  /* TRANSFERÊNCIA */
   async function transferirCarga(dataOrigem, numeroCarga) {
     const novaData = await pedirTransferencia(dataOrigem, numeroCarga);
     if (!novaData) return;
@@ -1329,6 +1332,47 @@
       console.error(e);
     }
   }
+
+  document.getElementById("btnLimparPassados").addEventListener(
+    "click",
+    async () => {
+      const passados = dias.filter(d => d.data < hojeISO());
+
+      if (!passados.length) {
+        return alert("✅ Não há cargas antigas.");
+      }
+
+      const total = passados.reduce(
+        (a, d) => a + (d.cargas?.length || 0),
+        0
+      );
+
+      const ok = await pedirSenha(
+        "Limpar dias",
+        `Apagar ${total} carga(s) de dias que já passaram.`
+      );
+
+      if (ok) {
+        try {
+          const batch = writeBatch(db);
+
+          passados.forEach(d => {
+            batch.delete(doc(db, "cargas", d.data));
+          });
+
+          await batch.commit();
+
+          passados.forEach(d => {
+            delete filtroCargaPorDia[d.data];
+            delete filtroProdutoPorDia[d.data];
+          });
+        } catch (e) {
+          alert("❌ Erro: " + e.message);
+        }
+      }
+    }
+  );
+
   /* FILTROS E ABAS */
   document.getElementById("filtroData").addEventListener(
     "change",
@@ -1387,6 +1431,7 @@
         l.push({
           data: d.data,
           num: c.numeroCarga,
+          pesoLiquido: c.pesoLiquido || 0, // Incluindo peso individual
           produtos: c.produtos || []
         });
       });
@@ -1545,13 +1590,14 @@
         porData[c.data] = {
           produtos: {},
           cargas: [],
-          produtosPorCarga: {}
+          produtosPorCarga: {},
+          pesosPorCarga: {} // Guardar o peso individual
         };
       }
 
       porData[c.data].cargas.push(c.num);
-
       porData[c.data].produtosPorCarga[String(c.num)] = c.produtos;
+      porData[c.data].pesosPorCarga[String(c.num)] = c.pesoLiquido;
 
       c.produtos.forEach(p => {
         const k = `${p.codigo}||${p.nome}||${p.unidade || ""}`;
@@ -1625,8 +1671,11 @@
           const nStr = String(n);
           const nomeCli = mapeamentoClientes[n];
           const cssClasse = nomeCli ? "has-cliente" : "";
-          const ativa =
-            temFiltro && nStr === String(cargaFiltrada);
+          const ativa = temFiltro && nStr === String(cargaFiltrada);
+          
+          // Pega o peso da carga para exibir na tag
+          const pesoCarga = inf.pesosPorCarga[nStr] || 0;
+          const textPeso = pesoCarga > 0 ? ` • ${formatarPeso(pesoCarga)} kg` : "";
 
           let onclick = `toggleFiltroCarga('${d}', '${nStr}')`;
 
@@ -1639,17 +1688,17 @@
             : "";
 
           return `
-            <span
+            <div
               class="carga-tag ${cssClasse} ${ativa ? 'ativa' : ''}"
               ${titleAttr}
               onclick="${onclick}"
             >
-              ${n}
-              <span class="tag-actions">
+              <span>${n}${textPeso}</span>
+              <div class="tag-actions">
                 <button class="tag-btn" onclick="event.stopPropagation(); transferirCarga('${d}', '${nStr}')" title="Transferir">↔</button>
                 <button class="tag-btn" onclick="event.stopPropagation(); apagarCarga('${d}', '${nStr}')" title="Apagar">🗑</button>
-              </span>
-            </span>
+              </div>
+            </div>
           `;
         })
         .join("");
