@@ -1251,7 +1251,7 @@
     }
   }
 
-  /* TRANSFERÊNCIA */
+    /* TRANSFERÊNCIA */
   async function transferirCarga(dataOrigem, numeroCarga) {
     const novaData = await pedirTransferencia(dataOrigem, numeroCarga);
     if (!novaData) return;
@@ -1265,23 +1265,30 @@
       return;
     }
 
+    // Função auxiliar para calcular o peso total de uma lista de cargas
+    const calcularPesoTotal = (listaCargas) => {
+      return listaCargas.reduce((acc, c) => acc + Number(c.pesoLiquido || c.peso || 0), 0);
+    };
+
     try {
       const refOrigem = doc(db, "cargas", dataOrigem);
       const refDestino = doc(db, "cargas", novaData);
 
-      // 1. Remove do dia de origem
+      // 1. REMOVER DO DIA DE ORIGEM
       const listaOrigemAtualizada = diaOrigem.cargas.filter(c => String(c.numeroCarga) !== String(numeroCarga));
       
       if (listaOrigemAtualizada.length === 0) {
         await deleteDoc(refOrigem);
       } else {
+        const novoPesoOrigem = calcularPesoTotal(listaOrigemAtualizada);
         await setDoc(refOrigem, { 
           cargas: listaOrigemAtualizada,
+          pesoLiquido: novoPesoOrigem,
           atualizadoEm: serverTimestamp()
         }, { merge: true });
       }
 
-      // 2. Adiciona no dia de destino
+      // 2. ADICIONAR NO DIA DE DESTINO
       const diaDestino = dias.find(d => d.data === novaData);
       let listaDestinoAtualizada = [];
       
@@ -1291,67 +1298,37 @@
         listaDestinoAtualizada = [cargaParaMover];
       }
 
-      // Se o dia destino existe, usa update. Se não, usa set.
-      if (diaDestino) {
-        await updateDoc(refDestino, {
-          cargas: listaDestinoAtualizada,
-          atualizadoEm: serverTimestamp()
+      const novoPesoDestino = calcularPesoTotal(listaDestinoAtualizada);
+
+      // Se o dia destino NÃO existe, criamos a estrutura IGUALZINHA à do importador
+      if (!diaDestino) {
+        await setDoc(refDestino, {
+          data: novaData,
+          origem: "transferencia",
+          criadoEm: serverTimestamp(),
+          atualizadoEm: serverTimestamp(),
+          pesoLiquido: novoPesoDestino,
+          cargas: listaDestinoAtualizada
         });
       } else {
-        await setDoc(refDestino, {
+        // Se já existe, apenas atualizamos os campos necessários
+        await updateDoc(refDestino, {
           cargas: listaDestinoAtualizada,
+          pesoLiquido: novoPesoDestino,
           atualizadoEm: serverTimestamp()
         });
       }
 
       window.mostrarCliente(`✅ Carga #${numeroCarga} transferida para ${fmtData(novaData)}!`);
 
+      // Força o Firebase a buscar os dados novos na hora (garante que o painel atualize)
+      iniciarListener();
+
     } catch (e) {
       alert("❌ Erro ao transferir carga: " + e.message);
       console.error(e);
     }
   }
-
-  document.getElementById("btnLimparPassados").addEventListener(
-    "click",
-    async () => {
-      const passados = dias.filter(d => d.data < hojeISO());
-
-      if (!passados.length) {
-        return alert("✅ Não há cargas antigas.");
-      }
-
-      const total = passados.reduce(
-        (a, d) => a + (d.cargas?.length || 0),
-        0
-      );
-
-      const ok = await pedirSenha(
-        "Limpar dias",
-        `Apagar ${total} carga(s) de dias que já passaram.`
-      );
-
-      if (ok) {
-        try {
-          const batch = writeBatch(db);
-
-          passados.forEach(d => {
-            batch.delete(doc(db, "cargas", d.data));
-          });
-
-          await batch.commit();
-
-          passados.forEach(d => {
-            delete filtroCargaPorDia[d.data];
-            delete filtroProdutoPorDia[d.data];
-          });
-        } catch (e) {
-          alert("❌ Erro: " + e.message);
-        }
-      }
-    }
-  );
-
   /* FILTROS E ABAS */
   document.getElementById("filtroData").addEventListener(
     "change",
