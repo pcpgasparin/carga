@@ -900,7 +900,7 @@
     return `${d.getFullYear()}-${mm}-${dd}`;
   };
 
-  // CORRIGIDO: Removida a divisão por 100 para exibir o peso correto que vem do banco
+  // Mantida a formatação original sem a divisão por 100
   const formatarPeso = (valor) => {
     const num = Number(valor || 0);
     return num.toLocaleString("pt-BR", {
@@ -1238,11 +1238,9 @@
       try {
         const docRef = doc(db, "cargas", dataISO);
         
-        // Se não sobrou nenhuma carga, deleta o dia inteiro
         if (novaListaCargas.length === 0) {
            await deleteDoc(docRef);
         } else {
-           // Salva o array sem a carga apagada
            await setDoc(docRef, { 
              cargas: novaListaCargas,
              atualizadoEm: serverTimestamp()
@@ -1268,7 +1266,6 @@
       return;
     }
 
-    // Função auxiliar para calcular o peso total de uma lista de cargas
     const calcularPesoTotal = (listaCargas) => {
       return listaCargas.reduce((acc, c) => acc + Number(c.pesoLiquido || c.peso || 0), 0);
     };
@@ -1303,7 +1300,6 @@
 
       const novoPesoDestino = calcularPesoTotal(listaDestinoAtualizada);
 
-      // Se o dia destino NÃO existe, criamos a estrutura IGUALZINHA à do importador
       if (!diaDestino) {
         await setDoc(refDestino, {
           data: novaData,
@@ -1314,7 +1310,6 @@
           cargas: listaDestinoAtualizada
         });
       } else {
-        // Se já existe, apenas atualizamos os campos necessários
         await updateDoc(refDestino, {
           cargas: listaDestinoAtualizada,
           pesoLiquido: novoPesoDestino,
@@ -1323,8 +1318,6 @@
       }
 
       window.mostrarCliente(`✅ Carga #${numeroCarga} transferida para ${fmtData(novaData)}!`);
-
-      // Força o Firebase a buscar os dados novos na hora (garante que o painel atualize)
       iniciarListener();
 
     } catch (e) {
@@ -1431,7 +1424,7 @@
         l.push({
           data: d.data,
           num: c.numeroCarga,
-          pesoLiquido: c.pesoLiquido || 0, // Incluindo peso individual
+          pesoLiquido: c.pesoLiquido || 0,
           produtos: c.produtos || []
         });
       });
@@ -1494,7 +1487,6 @@
         ? `title="Cliente: ${escapeHtml(nomeCli)}" onclick="mostrarCliente('${escapeHtml(nomeCli)}')"`
         : "";
 
-      // Botões de ação da carga
       const acoesCarga = `
         <span class="carga-actions">
           <button class="btn-carga-acao" onclick="event.stopPropagation(); transferirCarga('${carga.data}', '${carga.num}')" title="Transferir para outro dia">↔</button>
@@ -1590,14 +1582,12 @@
         porData[c.data] = {
           produtos: {},
           cargas: [],
-          produtosPorCarga: {},
-          pesosPorCarga: {} // Guardar o peso individual
+          produtosPorCarga: {}
         };
       }
 
       porData[c.data].cargas.push(c.num);
       porData[c.data].produtosPorCarga[String(c.num)] = c.produtos;
-      porData[c.data].pesosPorCarga[String(c.num)] = c.pesoLiquido;
 
       c.produtos.forEach(p => {
         const k = `${p.codigo}||${p.nome}||${p.unidade || ""}`;
@@ -1621,9 +1611,7 @@
       const pDia =
         dias.find(dia => dia.data === d)?.pesoLiquido || 0;
 
-      /* Filtro existente: carga selecionada determina os produtos */
       const cargaFiltrada = filtroCargaPorDia[d];
-
       const temFiltro =
         cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
 
@@ -1642,9 +1630,7 @@
         produtosParaMostrar = Object.values(inf.produtos);
       }
 
-      /* Novo filtro: produto selecionado determina as cargas abaixo */
       const produtoFiltrado = filtroProdutoPorDia[d];
-
       const produtoSelecionado = Object.values(inf.produtos).find(
         p => chaveProduto(p) === produtoFiltrado
       );
@@ -1658,7 +1644,7 @@
         )
       );
 
-      /* Tags das cargas */
+      /* Tags das cargas (apenas número + botões) */
       const tags = cargasParaMostrar
         .sort((a, b) =>
           String(a).localeCompare(
@@ -1672,10 +1658,6 @@
           const nomeCli = mapeamentoClientes[n];
           const cssClasse = nomeCli ? "has-cliente" : "";
           const ativa = temFiltro && nStr === String(cargaFiltrada);
-          
-          // Pega o peso da carga para exibir na tag
-          const pesoCarga = inf.pesosPorCarga[nStr] || 0;
-          const textPeso = pesoCarga > 0 ? ` • ${formatarPeso(pesoCarga)} kg` : "";
 
           let onclick = `toggleFiltroCarga('${d}', '${nStr}')`;
 
@@ -1693,7 +1675,7 @@
               ${titleAttr}
               onclick="${onclick}"
             >
-              <span>${n}${textPeso}</span>
+              <span>${n}</span>
               <div class="tag-actions">
                 <button class="tag-btn" onclick="event.stopPropagation(); transferirCarga('${d}', '${nStr}')" title="Transferir">↔</button>
                 <button class="tag-btn" onclick="event.stopPropagation(); apagarCarga('${d}', '${nStr}')" title="Apagar">🗑</button>
@@ -1703,7 +1685,6 @@
         })
         .join("");
 
-      /* Lista de produtos clicáveis */
       const htmlProdutos = produtosParaMostrar
         .sort((a, b) => a.nome.localeCompare(b.nome))
         .map(p => {
@@ -1736,7 +1717,6 @@
           <div class="produto-linha"><em>Sem produtos</em></div>
         `;
 
-      /* Aviso de carga selecionada */
       const filtroHtml = temFiltro ? `
         <div class="filtro-ativo">
           <span>
@@ -1749,7 +1729,6 @@
         </div>
       ` : "";
 
-      /* Aviso de produto selecionado */
       const filtroProdutoHtml = temFiltroProduto ? `
         <div class="filtro-ativo">
           <span>
@@ -1809,7 +1788,6 @@
     });
   }
 
-  // Expõe as funções assíncronas para o escopo global (necessário para os botões inline)
   window.apagarCarga = apagarCarga;
   window.transferirCarga = transferirCarga;
 </script>
