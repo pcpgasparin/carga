@@ -242,9 +242,11 @@
   <div id="tab-texto" class="tab-content">
     <section class="box">
       <h2>Mapeamento de Cargas e Clientes (PROCV)</h2>
-      <p class="help">Cole aqui os textos do WhatsApp ou e-mail. O sistema vai extrair automaticamente os números das cargas e os nomes dos clientes. Não se preocupe com os dias da semana escritos, o sistema é inteligente o suficiente para filtrar apenas as cargas.</p>
+      <p class="help">
+        Cole aqui os textos do WhatsApp ou e-mail. O sistema vai extrair automaticamente os dias (ex: TERÇA 17/11) e vincular a carga ao cliente daquele dia específico. Não se preocupe com os dias da semana escritos.
+      </p>
       
-      <textarea id="textoClientes" class="textarea-clientes" placeholder="Exemplo:&#10;QUARTA-FEIRA 30/09&#10;21443 - BELTRAME - SANTA MARIA&#10;21570 (PAMPLONA) CRISTAL..."></textarea>
+      <textarea id="textoClientes" class="textarea-clientes" placeholder="Exemplo:&#10;TERÇA 17/11&#10;21795 - TAPERA + PASSO FUNDO - faé&#10;21739 - CLIENTE RETIRA...&#10;&#10;QUARTA 18/11&#10;21794 - PASSARELA - ERECHIM VAN"></textarea>
       
       <div class="actions">
         <button id="btnSalvarClientes" class="btn-primary">💾 Salvar Mapeamento no Banco</button>
@@ -279,7 +281,7 @@
   });
 
   // =========================================================
-  // LÓGICA DA ABA 2: MAPEAMENTO DE CLIENTES
+  // LÓGICA DA ABA 2: MAPEAMENTO DE CLIENTES POR DIA
   // =========================================================
   document.getElementById("btnSalvarClientes").addEventListener("click", async () => {
     const texto = document.getElementById("textoClientes").value;
@@ -294,15 +296,49 @@
     statusCli.textContent = "⏳ Processando...";
     statusCli.className = "status-msg";
 
-    const regex = /^(\d{4,6})[\s\-–—]*(.+)$/;
     const linhas = texto.split('\n');
-    const mapa = {};
+    const mapaGlobal = {}; // Formato antigo (fallback)
+    const mapaPorData = {}; // Novo formato (por dia)
+    
+    let dataAtual = null;
     let qtdEncontrada = 0;
 
+    // Regex para capturar cabeçalhos de data: "TERÇA 17/11", "QUARTA-FEIRA 18/11", etc.
+    const reData = /(SEGUNDA|TERÇA|QUARTA|QUINTA|SEXTA|SÁBADO|DOMINGO)?(?:\s*-?\s*FEIRA)?\s*(\d{2})\/(\d{2})/i;
+    
+    // Regex para capturar a carga e o cliente
+    const reCarga = /^(\d{4,6})[\s\-–—]*(.+)$/;
+
     linhas.forEach(linha => {
-      const match = linha.trim().match(regex);
-      if (match) {
-        mapa[match[1]] = match[2].trim();
+      linha = linha.trim();
+      if (!linha) return;
+
+      // 1. Verifica se a linha é uma data (ex: TERÇA 17/11)
+      const matchData = linha.match(reData);
+      if (matchData) {
+        const dia = matchData[2];
+        const mes = matchData[3];
+        // Assume o ano atual
+        const ano = new Date().getFullYear();
+        dataAtual = `${ano}-${mes}-${dia}`;
+        return; // Pula para a próxima linha
+      }
+
+      // 2. Verifica se a linha é uma carga
+      const matchCarga = linha.match(reCarga);
+      if (matchCarga) {
+        const numCarga = matchCarga[1];
+        const nomeCliente = matchCarga[2].trim();
+        
+        // Salva no global
+        mapaGlobal[numCarga] = nomeCliente;
+        
+        // Salva na data específica
+        if (dataAtual) {
+          if (!mapaPorData[dataAtual]) mapaPorData[dataAtual] = {};
+          mapaPorData[dataAtual][numCarga] = nomeCliente;
+        }
+        
         qtdEncontrada++;
       }
     });
@@ -315,9 +351,15 @@
 
     try {
       const docRef = doc(db, "configuracoes", "mapeamento_cargas");
-      await setDoc(docRef, mapa, { merge: true });
       
-      statusCli.textContent = `✅ Sucesso! ${qtdEncontrada} cliente(s) vinculados e salvos no banco.`;
+      // Salva os dois mapas no banco. 
+      // O "porData" será lido primeiro pelo visualizador. O "global" será o plano B.
+      await setDoc(docRef, { 
+        global: mapaGlobal,
+        porData: mapaPorData
+      });
+      
+      statusCli.textContent = `✅ Sucesso! ${qtdEncontrada} carga(s) vinculadas em ${Object.keys(mapaPorData).length} dia(s).`;
       statusCli.className = "status-msg ok";
       document.getElementById("textoClientes").value = "";
     } catch (err) {
@@ -609,11 +651,8 @@
     const cargas = []; 
     let cargaAtual = null, descPendente = null;
     
-    // Regex para pegar os dados dos produtos (SEM o peso no final)
     const reCDQ = /^(\d{3,6})\s+(.+?)\s+([\d.]+,\d+)\s+([A-Z0-9]{2,4})/;
     const reCQ = /^(\d{3,6})\s+([\d.]+,\d+)\s+([A-Z0-9]{2,4})/;
-    
-    // Regex para capturar a linha de Total (Peso Líquido da carga)
     const reTotal = /^Total:\s+[\d.,]+\s+([\d.]+,\d+)/i;
     
     const reCargaNum = /^Carga:\s+(\d+)\s*$/i;
