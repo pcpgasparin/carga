@@ -243,7 +243,7 @@
     white-space: nowrap;
   }
 
-  /* NOVOS BOTÕES DE AÇÃO DA CARGA */
+  /* BOTÕES DE AÇÃO DA CARGA */
   .carga-actions {
     display: inline-flex;
     gap: 4px;
@@ -443,6 +443,13 @@
   }
 
   .produto-linha:last-child { border-bottom: none; }
+  
+  /* NOVO CSS: ESTILO PARA PRODUTO ZERADO */
+  .produto-linha.zerado .p-nome,
+  .produto-linha.zerado .qtd {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
 
   .produto-linha .p-nome {
     display: flex;
@@ -911,7 +918,7 @@
     String(p.codigo ?? ""), String(p.nome ?? ""), String(p.unidade || "")
   ]);
 
-  // NOVA FUNÇÃO: Busca o cliente pelo dia exato, se não achar usa o global
+  // Função para buscar o cliente pelo dia exato, se não achar usa o global
   function obterNomeCliente(dataISO, numCarga) {
     const numStr = String(numCarga);
     if (mapeamentoClientes[dataISO] && mapeamentoClientes[dataISO][numStr]) {
@@ -1208,7 +1215,7 @@
     }
   }
 
-  /* NOVA FUNÇÃO: EDITAR CLIENTE */
+  /* EDITAR CLIENTE */
   async function editarCliente(dataISO, numeroCarga) {
     const nomeAtual = obterNomeCliente(dataISO, numeroCarga) || "";
     
@@ -1234,7 +1241,7 @@
     } catch (e) { alert("❌ Erro ao atualizar cliente: " + e.message); }
   }
 
-  /* NOVA FUNÇÃO: EDITAR QUANTIDADE DO PRODUTO */
+  /* EDITAR QUANTIDADE DO PRODUTO */
   async function editarQuantidadeProduto(dataISO, numCarga, indexProduto) {
     const dia = dias.find(d => d.data === dataISO);
     if (!dia) return;
@@ -1499,13 +1506,20 @@
         })
         .join("");
 
-      const htmlProdutos = produtosParaMostrar
+      // FILTRA OS ZERADOS SE NÃO ESTIVER NO MODO DE EDIÇÃO
+      const produtosVisiveis = produtosParaMostrar.filter(p => {
+        if (temFiltro) return true; // No modo edição, mostra tudo
+        return p.total > 0;         // No modo normal, esconde os zerados
+      });
+
+      const htmlProdutos = produtosVisiveis
         .sort((a, b) => a.nome.localeCompare(b.nome))
         .map(p => {
           const produtoAtivo = temFiltroProduto && chaveProduto(p) === produtoFiltrado;
+          const estaZerado = p.total === 0;
 
           return `
-            <div class="produto-linha">
+            <div class="produto-linha ${estaZerado ? 'zerado' : ''}">
               <button
                 type="button"
                 class="p-nome ${produtoAtivo ? 'ativo' : ''}"
@@ -1534,7 +1548,9 @@
             </div>
           `;
         })
-        .join("") || `<div class="produto-linha"><em>Sem produtos</em></div>`;
+        .join("") || `
+          <div class="produto-linha"><em>Nenhum produto ativo.</em></div>
+        `;
 
       const filtroHtml = temFiltro ? `
         <div class="filtro-ativo">
