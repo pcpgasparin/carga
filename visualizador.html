@@ -875,31 +875,22 @@
   let filtroData = "";
   let unsubscribe = null;
 
-  // Filtros independentes para cada card/dia.
   let filtroCargaPorDia = {};
   let filtroProdutoPorDia = {};
 
   const statusEl = document.getElementById("statusConexao");
 
   /* HELPERS E FORMATAÇÃO */
-  const fmtData = (iso) =>
-    iso ? iso.split("-").reverse().join("/") : "";
+  const fmtData = (iso) => iso ? iso.split("-").reverse().join("/") : "";
 
   const diaSemana = (iso) => [
-    "Domingo",
-    "Segunda",
-    "Terça",
-    "Quarta",
-    "Quinta",
-    "Sexta",
-    "Sábado"
+    "Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"
   ][new Date(iso + "T00:00:00").getDay()];
 
   const hojeISO = () => {
     const d = new Date();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
-
     return `${d.getFullYear()}-${mm}-${dd}`;
   };
 
@@ -913,17 +904,11 @@
 
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, c => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[c]));
 
   const chaveProduto = (p) => JSON.stringify([
-    String(p.codigo ?? ""),
-    String(p.nome ?? ""),
-    String(p.unidade || "")
+    String(p.codigo ?? ""), String(p.nome ?? ""), String(p.unidade || "")
   ]);
 
   // NOVA FUNÇÃO: Busca o cliente pelo dia exato, se não achar usa o global
@@ -938,13 +923,10 @@
   /* TOAST DE CLIENTE */
   window.mostrarCliente = function(nome) {
     const toast = document.getElementById("toastCliente");
-
     toast.textContent = "🏢 " + nome;
     toast.classList.add("show");
 
-    if (window.toastTimeout) {
-      clearTimeout(window.toastTimeout);
-    }
+    if (window.toastTimeout) clearTimeout(window.toastTimeout);
 
     window.toastTimeout = setTimeout(() => {
       toast.classList.remove("show");
@@ -954,50 +936,32 @@
   /* FILTRO DE CARGA */
   window.toggleFiltroCarga = function(dataISO, numCarga) {
     const numStr = String(numCarga);
-
     if (filtroCargaPorDia[dataISO] === numStr) {
       delete filtroCargaPorDia[dataISO];
     } else {
       filtroCargaPorDia[dataISO] = numStr;
     }
-
-    if (viewAtual === "resumo") {
-      renderResumo(getCargasFiltradas());
-    }
+    if (viewAtual === "resumo") renderResumo(getCargasFiltradas());
   };
 
   window.limparFiltroCarga = function(dataISO) {
     delete filtroCargaPorDia[dataISO];
-
-    if (viewAtual === "resumo") {
-      renderResumo(getCargasFiltradas());
-    }
+    if (viewAtual === "resumo") renderResumo(getCargasFiltradas());
   };
 
   /* FILTRO DE PRODUTO */
-  document.getElementById("cardsResumo").addEventListener(
-    "click",
-    (event) => {
-      const botao = event.target.closest(
-        "[data-produto], [data-limpar-produto]"
-      );
+  document.getElementById("cardsResumo").addEventListener("click", (event) => {
+    const botao = event.target.closest("[data-produto], [data-limpar-produto]");
+    if (!botao) return;
 
-      if (!botao) return;
-
-      const data = botao.dataset.dia;
-
-      if (
-        botao.hasAttribute("data-limpar-produto") ||
-        filtroProdutoPorDia[data] === botao.dataset.produto
-      ) {
-        delete filtroProdutoPorDia[data];
-      } else {
-        filtroProdutoPorDia[data] = botao.dataset.produto;
-      }
-
-      renderResumo(getCargasFiltradas());
+    const data = botao.dataset.dia;
+    if (botao.hasAttribute("data-limpar-produto") || filtroProdutoPorDia[data] === botao.dataset.produto) {
+      delete filtroProdutoPorDia[data];
+    } else {
+      filtroProdutoPorDia[data] = botao.dataset.produto;
     }
-  );
+    renderResumo(getCargasFiltradas());
+  });
 
   /* MODAL DE SENHA PARA EXCLUSÃO */
   function pedirSenha(titulo, mensagem) {
@@ -1009,43 +973,22 @@
         <div class="modal-box" role="dialog" aria-modal="true">
           <div class="modal-header">
             <span>🔒 ${titulo}</span>
-            <button
-              class="modal-close"
-              type="button"
-              aria-label="Fechar"
-            >✕</button>
+            <button class="modal-close" type="button" aria-label="Fechar">✕</button>
           </div>
-
           <div class="modal-body">
             <p class="modal-msg">${mensagem}</p>
             <label class="modal-label">Senha de administrador</label>
-            <input
-              type="password"
-              class="modal-input"
-              id="modalSenhaInput"
-              autocomplete="off"
-              autofocus
-            >
+            <input type="password" class="modal-input" id="modalSenhaInput" autocomplete="off" autofocus>
             <div class="modal-erro" id="modalErro"></div>
           </div>
-
           <div class="modal-footer">
-            <button
-              class="btn-sec-modal"
-              type="button"
-              data-cancelar
-            >Cancelar</button>
-            <button
-              class="btn-danger-modal"
-              type="button"
-              data-confirmar
-            >Confirmar</button>
+            <button class="btn-sec-modal" type="button" data-cancelar>Cancelar</button>
+            <button class="btn-danger-modal" type="button" data-confirmar>Confirmar</button>
           </div>
         </div>
       `;
 
       document.body.appendChild(overlay);
-
       const input = overlay.querySelector("#modalSenhaInput");
       const erroEl = overlay.querySelector("#modalErro");
 
@@ -1053,11 +996,7 @@
 
       function fechar(resultado) {
         overlay.classList.add("fechando");
-
-        setTimeout(() => {
-          overlay.remove();
-          resolve(resultado);
-        }, 150);
+        setTimeout(() => { overlay.remove(); resolve(resultado); }, 150);
       }
 
       function tentarConfirmar() {
@@ -1070,14 +1009,9 @@
         }
       }
 
-      overlay.querySelector("[data-confirmar]")
-        .addEventListener("click", tentarConfirmar);
-
-      overlay.querySelector("[data-cancelar]")
-        .addEventListener("click", () => fechar(false));
-
-      overlay.querySelector(".modal-close")
-        .addEventListener("click", () => fechar(false));
+      overlay.querySelector("[data-confirmar]").addEventListener("click", tentarConfirmar);
+      overlay.querySelector("[data-cancelar]").addEventListener("click", () => fechar(false));
+      overlay.querySelector(".modal-close").addEventListener("click", () => fechar(false));
 
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") tentarConfirmar();
@@ -1098,22 +1032,12 @@
             <span>↔ Transferir Carga</span>
             <button class="modal-close" type="button" aria-label="Fechar">✕</button>
           </div>
-
           <div class="modal-body">
-            <p class="modal-msg">
-              Transferir a carga <strong>#${numeroCarga}</strong> do dia <strong>${fmtData(dataOrigem)}</strong> para:
-            </p>
+            <p class="modal-msg">Transferir a carga <strong>#${numeroCarga}</strong> do dia <strong>${fmtData(dataOrigem)}</strong> para:</p>
             <label class="modal-label">Nova data</label>
-            <input
-              type="date"
-              class="modal-input"
-              id="modalDataInput"
-              min="${hojeISO()}"
-              required
-            >
+            <input type="date" class="modal-input" id="modalDataInput" min="${hojeISO()}" required>
             <div class="modal-erro" id="modalErro"></div>
           </div>
-
           <div class="modal-footer">
             <button class="btn-sec-modal" type="button" data-cancelar>Cancelar</button>
             <button class="btn-primary-modal" type="button" data-confirmar>Transferir</button>
@@ -1122,7 +1046,6 @@
       `;
 
       document.body.appendChild(overlay);
-
       const input = overlay.querySelector("#modalDataInput");
       const erroEl = overlay.querySelector("#modalErro");
 
@@ -1130,22 +1053,13 @@
 
       function fechar(resultado) {
         overlay.classList.add("fechando");
-        setTimeout(() => {
-          overlay.remove();
-          resolve(resultado);
-        }, 150);
+        setTimeout(() => { overlay.remove(); resolve(resultado); }, 150);
       }
 
       function tentarConfirmar() {
         const novaData = input.value;
-        if (!novaData) {
-          erroEl.textContent = "❌ Selecione uma data válida.";
-          return;
-        }
-        if (novaData === dataOrigem) {
-          erroEl.textContent = "❌ A data de destino não pode ser a mesma.";
-          return;
-        }
+        if (!novaData) { erroEl.textContent = "❌ Selecione uma data válida."; return; }
+        if (novaData === dataOrigem) { erroEl.textContent = "❌ A data de destino não pode ser a mesma."; return; }
         fechar(novaData);
       }
 
@@ -1175,14 +1089,8 @@
           ...d.data()
         }));
 
-        const total = dias.reduce(
-          (acc, d) => acc + (d.cargas?.length || 0),
-          0
-        );
-
-        statusEl.textContent =
-          `🔥 Firebase (${dias.length} dia(s) • ${total} carga(s))`;
-
+        const total = dias.reduce((acc, d) => acc + (d.cargas?.length || 0), 0);
+        statusEl.textContent = `🔥 Firebase (${dias.length} dia(s) • ${total} carga(s))`;
         statusEl.className = "status ok";
         render();
       },
@@ -1193,49 +1101,36 @@
       }
     );
 
-    onSnapshot(
-      doc(db, "configuracoes", "mapeamento_cargas"),
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          // Se tem o formato novo, usa. Se for o antigo, adapta.
-          if (data.porData) {
-            mapeamentoClientes = data.porData;
-            mapeamentoGlobal = data.global || {};
-          } else {
-            mapeamentoGlobal = data;
-            mapeamentoClientes = {};
-          }
-          render();
+    onSnapshot(doc(db, "configuracoes", "mapeamento_cargas"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.porData) {
+          mapeamentoClientes = data.porData;
+          mapeamentoGlobal = data.global || {};
+        } else {
+          mapeamentoGlobal = data;
+          mapeamentoClientes = {};
         }
+        render();
       }
-    );
+    });
   }
 
   iniciarListener();
-
-  document.getElementById("btnAtualizar")
-    .addEventListener("click", iniciarListener);
+  document.getElementById("btnAtualizar").addEventListener("click", iniciarListener);
 
   /* EXCLUSÃO */
   async function apagarDia(dataISO) {
     const dia = dias.find(d => d.data === dataISO);
-
     if (!dia || !dia.cargas?.length) return;
 
-    const ok = await pedirSenha(
-      "Apagar dia",
-      `Vai apagar TODAS as ${dia.cargas.length} carga(s) de ${fmtData(dataISO)}.`
-    );
-
+    const ok = await pedirSenha("Apagar dia", `Vai apagar TODAS as ${dia.cargas.length} carga(s) de ${fmtData(dataISO)}.`);
     if (ok) {
       try {
         await deleteDoc(doc(db, "cargas", dataISO));
         delete filtroCargaPorDia[dataISO];
         delete filtroProdutoPorDia[dataISO];
-      } catch (e) {
-        alert("❌ Erro: " + e.message);
-      }
+      } catch (e) { alert("❌ Erro: " + e.message); }
     }
   }
 
@@ -1243,30 +1138,19 @@
     const dia = dias.find(d => d.data === dataISO);
     if (!dia) return;
 
-    const novaListaCargas = (dia.cargas || []).filter(
-      c => String(c.numeroCarga) !== String(numeroCarga)
-    );
+    const novaListaCargas = (dia.cargas || []).filter(c => String(c.numeroCarga) !== String(numeroCarga));
 
-    const ok = await pedirSenha(
-      "Apagar Carga",
-      `Vai apagar a carga <strong>#${numeroCarga}</strong> do dia <strong>${fmtData(dataISO)}</strong>.`
-    );
+    const ok = await pedirSenha("Apagar Carga", `Vai apagar a carga <strong>#${numeroCarga}</strong> do dia <strong>${fmtData(dataISO)}</strong>.`);
 
     if (ok) {
       try {
         const docRef = doc(db, "cargas", dataISO);
-        
         if (novaListaCargas.length === 0) {
            await deleteDoc(docRef);
         } else {
-           await setDoc(docRef, { 
-             cargas: novaListaCargas,
-             atualizadoEm: serverTimestamp()
-           }, { merge: true });
+           await setDoc(docRef, { cargas: novaListaCargas, atualizadoEm: serverTimestamp() }, { merge: true });
         }
-      } catch (e) {
-        alert("❌ Erro ao apagar carga: " + e.message);
-      }
+      } catch (e) { alert("❌ Erro ao apagar carga: " + e.message); }
     }
   }
 
@@ -1279,14 +1163,9 @@
     if (!diaOrigem) return;
 
     const cargaParaMover = (diaOrigem.cargas || []).find(c => String(c.numeroCarga) === String(numeroCarga));
-    if (!cargaParaMover) {
-      alert("❌ Carga não encontrada no dia de origem.");
-      return;
-    }
+    if (!cargaParaMover) { alert("❌ Carga não encontrada no dia de origem."); return; }
 
-    const calcularPesoTotal = (listaCargas) => {
-      return listaCargas.reduce((acc, c) => acc + Number(c.pesoLiquido || c.peso || 0), 0);
-    };
+    const calcularPesoTotal = (listaCargas) => listaCargas.reduce((acc, c) => acc + Number(c.pesoLiquido || c.peso || 0), 0);
 
     try {
       const refOrigem = doc(db, "cargas", dataOrigem);
@@ -1298,11 +1177,7 @@
         await deleteDoc(refOrigem);
       } else {
         const novoPesoOrigem = calcularPesoTotal(listaOrigemAtualizada);
-        await setDoc(refOrigem, { 
-          cargas: listaOrigemAtualizada,
-          pesoLiquido: novoPesoOrigem,
-          atualizadoEm: serverTimestamp()
-        }, { merge: true });
+        await setDoc(refOrigem, { cargas: listaOrigemAtualizada, pesoLiquido: novoPesoOrigem, atualizadoEm: serverTimestamp() }, { merge: true });
       }
 
       const diaDestino = dias.find(d => d.data === novaData);
@@ -1318,19 +1193,10 @@
 
       if (!diaDestino) {
         await setDoc(refDestino, {
-          data: novaData,
-          origem: "transferencia",
-          criadoEm: serverTimestamp(),
-          atualizadoEm: serverTimestamp(),
-          pesoLiquido: novoPesoDestino,
-          cargas: listaDestinoAtualizada
+          data: novaData, origem: "transferencia", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pesoLiquido: novoPesoDestino, cargas: listaDestinoAtualizada
         });
       } else {
-        await updateDoc(refDestino, {
-          cargas: listaDestinoAtualizada,
-          pesoLiquido: novoPesoDestino,
-          atualizadoEm: serverTimestamp()
-        });
+        await updateDoc(refDestino, { cargas: listaDestinoAtualizada, pesoLiquido: novoPesoDestino, atualizadoEm: serverTimestamp() });
       }
 
       window.mostrarCliente(`✅ Carga #${numeroCarga} transferida para ${fmtData(novaData)}!`);
@@ -1347,11 +1213,10 @@
     const nomeAtual = obterNomeCliente(dataISO, numeroCarga) || "";
     
     const novoNome = prompt(`Editar cliente da carga #${numeroCarga} (${fmtData(dataISO)}):`, nomeAtual);
-    if (novoNome === null) return; // Cancelou
+    if (novoNome === null) return;
 
     try {
       const docRef = doc(db, "configuracoes", "mapeamento_cargas");
-      
       const docSnap = await getDoc(docRef);
       let data = docSnap.exists() ? docSnap.data() : {};
       
@@ -1366,98 +1231,85 @@
       
       await setDoc(docRef, data);
       window.mostrarCliente(`✅ Cliente atualizado!`);
+    } catch (e) { alert("❌ Erro ao atualizar cliente: " + e.message); }
+  }
+
+  /* NOVA FUNÇÃO: EDITAR QUANTIDADE DO PRODUTO */
+  async function editarQuantidadeProduto(dataISO, numCarga, indexProduto) {
+    const dia = dias.find(d => d.data === dataISO);
+    if (!dia) return;
+    
+    const carga = dia.cargas.find(c => String(c.numeroCarga) === String(numCarga));
+    if (!carga || !carga.produtos[indexProduto]) return;
+
+    const produto = carga.produtos[indexProduto];
+    const qtdAtual = Number(produto.quantidade) || 0;
+
+    const novaQtdStr = prompt(`Editar quantidade de ${produto.nome} (${produto.unidade}):`, qtdAtual);
+    if (novaQtdStr === null) return;
+
+    const novaQtd = parseFloat(novaQtdStr.replace(",", "."));
+    if (isNaN(novaQtd) || novaQtd < 0) { alert("❌ Quantidade inválida."); return; }
+    if (novaQtd === qtdAtual) return;
+
+    try {
+      produto.quantidade = novaQtd;
       
+      const docRef = doc(db, "cargas", dataISO);
+      await setDoc(docRef, {
+        cargas: dia.cargas,
+        atualizadoEm: serverTimestamp()
+      }, { merge: true });
+
+      window.mostrarCliente(`✅ Quantidade atualizada!`);
     } catch (e) {
-      alert("❌ Erro ao atualizar cliente: " + e.message);
+      alert("❌ Erro ao editar quantidade: " + e.message);
     }
   }
 
-  document.getElementById("btnLimparPassados").addEventListener(
-    "click",
-    async () => {
-      const passados = dias.filter(d => d.data < hojeISO());
+  document.getElementById("btnLimparPassados").addEventListener("click", async () => {
+    const passados = dias.filter(d => d.data < hojeISO());
+    if (!passados.length) return alert("✅ Não há cargas antigas.");
 
-      if (!passados.length) {
-        return alert("✅ Não há cargas antigas.");
-      }
+    const total = passados.reduce((a, d) => a + (d.cargas?.length || 0), 0);
+    const ok = await pedirSenha("Limpar dias", `Apagar ${total} carga(s) de dias que já passaram.`);
 
-      const total = passados.reduce(
-        (a, d) => a + (d.cargas?.length || 0),
-        0
-      );
-
-      const ok = await pedirSenha(
-        "Limpar dias",
-        `Apagar ${total} carga(s) de dias que já passaram.`
-      );
-
-      if (ok) {
-        try {
-          const batch = writeBatch(db);
-
-          passados.forEach(d => {
-            batch.delete(doc(db, "cargas", d.data));
-          });
-
-          await batch.commit();
-
-          passados.forEach(d => {
-            delete filtroCargaPorDia[d.data];
-            delete filtroProdutoPorDia[d.data];
-          });
-        } catch (e) {
-          alert("❌ Erro: " + e.message);
-        }
-      }
+    if (ok) {
+      try {
+        const batch = writeBatch(db);
+        passados.forEach(d => batch.delete(doc(db, "cargas", d.data)));
+        await batch.commit();
+        passados.forEach(d => {
+          delete filtroCargaPorDia[d.data];
+          delete filtroProdutoPorDia[d.data];
+        });
+      } catch (e) { alert("❌ Erro: " + e.message); }
     }
-  );
+  });
 
   /* FILTROS E ABAS */
-  document.getElementById("filtroData").addEventListener(
-    "change",
-    (e) => {
-      filtroData = e.target.value;
-      render();
-    }
-  );
+  document.getElementById("filtroData").addEventListener("change", (e) => {
+    filtroData = e.target.value;
+    render();
+  });
 
-  document.getElementById("btnLimparFiltro").addEventListener(
-    "click",
-    () => {
-      filtroData = "";
-      document.getElementById("filtroData").value = "";
-      render();
-    }
-  );
+  document.getElementById("btnLimparFiltro").addEventListener("click", () => {
+    filtroData = "";
+    document.getElementById("filtroData").value = "";
+    render();
+  });
 
-  document.getElementById("btnDetalhado").addEventListener(
-    "click",
-    () => setView("detalhado")
-  );
-
-  document.getElementById("btnResumo").addEventListener(
-    "click",
-    () => setView("resumo")
-  );
+  document.getElementById("btnDetalhado").addEventListener("click", () => setView("detalhado"));
+  document.getElementById("btnResumo").addEventListener("click", () => setView("resumo"));
 
   function setView(v) {
     viewAtual = v;
 
-    document.querySelectorAll(".tab").forEach(t => {
-      t.classList.remove("active");
-    });
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(s => s.classList.remove("active"));
 
-    document.querySelectorAll(".view").forEach(s => {
-      s.classList.remove("active");
-    });
-
-    document.getElementById(
-      v === "detalhado" ? "btnDetalhado" : "btnResumo"
-    ).classList.add("active");
-
-    document.getElementById(
-      v === "detalhado" ? "viewDetalhado" : "viewResumo"
-    ).classList.add("active");
+    document.getElementById(v === "detalhado" ? "btnDetalhado" : "btnResumo").classList.add("active");
+    document.getElementById(v === "detalhado" ? "viewDetalhado" : "viewResumo").classList.add("active");
 
     render();
   }
@@ -1467,38 +1319,33 @@
 
     dias.forEach(d => {
       (d.cargas || []).forEach(c => {
+        const produtosComIndex = (c.produtos || []).map((p, index) => ({
+          ...p,
+          _indexOriginal: index 
+        }));
+
         l.push({
           data: d.data,
           num: c.numeroCarga,
           pesoLiquido: c.pesoLiquido || 0,
-          produtos: c.produtos || []
+          produtos: produtosComIndex
         });
       });
     });
 
-    if (filtroData) {
-      l = l.filter(c => c.data >= filtroData);
-    }
+    if (filtroData) l = l.filter(c => c.data >= filtroData);
 
     return l.sort((a, b) =>
       a.data === b.data
-        ? String(a.num).localeCompare(
-            String(b.num),
-            undefined,
-            { numeric: true }
-          )
+        ? String(a.num).localeCompare(String(b.num), undefined, { numeric: true })
         : a.data.localeCompare(b.data)
     );
   }
 
   function render() {
     const l = getCargasFiltradas();
-
-    if (viewAtual === "detalhado") {
-      renderDetalhado(l);
-    } else {
-      renderResumo(l);
-    }
+    if (viewAtual === "detalhado") renderDetalhado(l);
+    else renderResumo(l);
   }
 
   /* RENDERIZAÇÃO DA TABELA DETALHADA */
@@ -1507,13 +1354,7 @@
     tbody.innerHTML = "";
 
     if (!lista.length) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="vazio">
-            Nenhuma carga programada.
-          </td>
-        </tr>
-      `;
+      tbody.innerHTML = `<tr><td colspan="6" class="vazio">Nenhuma carga programada.</td></tr>`;
       return;
     }
 
@@ -1522,18 +1363,12 @@
     lista.forEach(carga => {
       const p = carga.produtos || [];
       const nova = carga.data !== ant;
-      const pesoDia =
-        dias.find(d => d.data === carga.data)?.pesoLiquido || 0;
-
+      const pesoDia = dias.find(d => d.data === carga.data)?.pesoLiquido || 0;
       const pesoFmt = pesoDia > 0 ? formatarPeso(pesoDia) : "";
       
-      // USA A NOVA FUNÇÃO
       const nomeCli = obterNomeCliente(carga.data, carga.num);
       const cssClasse = nomeCli ? "has-cliente" : "";
-
-      const titleAttr = nomeCli
-        ? `title="Cliente: ${escapeHtml(nomeCli)}" onclick="mostrarCliente('${escapeHtml(nomeCli)}')"`
-        : "";
+      const titleAttr = nomeCli ? `title="Cliente: ${escapeHtml(nomeCli)}" onclick="mostrarCliente('${escapeHtml(nomeCli)}')"` : "";
 
       const acoesCarga = `
         <span class="carga-actions">
@@ -1547,24 +1382,11 @@
         tbody.innerHTML += `
           <tr class="${nova ? 'grupo-data' : ''}">
             <td class="data-cell">
-              ${nova
-                ? fmtData(carga.data) +
-                  " <small>" + diaSemana(carga.data) + "</small>"
-                : ""}
-
-              ${nova && pesoFmt
-                ? `<span class="peso-dia">${pesoFmt} kg</span>`
-                : ""}
-
-              ${nova
-                ? `<button class="btn-del-dia" data-data="${carga.data}">🗑</button>`
-                : ""}
+              ${nova ? fmtData(carga.data) + " <small>" + diaSemana(carga.data) + "</small>" : ""}
+              ${nova && pesoFmt ? `<span class="peso-dia">${pesoFmt} kg</span>` : ""}
+              ${nova ? `<button class="btn-del-dia" data-data="${carga.data}">🗑</button>` : ""}
             </td>
-
-            <td class="carga-cell ${cssClasse}" ${titleAttr}>
-              ${carga.num} ${acoesCarga}
-            </td>
-
+            <td class="carga-cell ${cssClasse}" ${titleAttr}>${carga.num} ${acoesCarga}</td>
             <td colspan="4"><em>Sem produtos</em></td>
           </tr>
         `;
@@ -1573,37 +1395,19 @@
           tbody.innerHTML += `
             <tr class="${nova && idx === 0 ? 'grupo-data' : ''} ${idx === 0 ? 'inicio-carga' : ''}">
               <td class="data-cell">
-                ${nova && idx === 0
-                  ? fmtData(carga.data) +
-                    " <small>" + diaSemana(carga.data) + "</small>"
-                  : ""}
-
-                ${nova && idx === 0 && pesoFmt
-                  ? `<span class="peso-dia">${pesoFmt} kg</span>`
-                  : ""}
-
-                ${nova && idx === 0
-                  ? `<button class="btn-del-dia" data-data="${carga.data}">🗑</button>`
-                  : ""}
+                ${nova && idx === 0 ? fmtData(carga.data) + " <small>" + diaSemana(carga.data) + "</small>" : ""}
+                ${nova && idx === 0 && pesoFmt ? `<span class="peso-dia">${pesoFmt} kg</span>` : ""}
+                ${nova && idx === 0 ? `<button class="btn-del-dia" data-data="${carga.data}">🗑</button>` : ""}
               </td>
-
-              <td class="carga-cell ${cssClasse}" ${titleAttr}>
-                ${idx === 0 ? carga.num + acoesCarga : ""}
-              </td>
-
+              <td class="carga-cell ${cssClasse}" ${titleAttr}>${idx === 0 ? carga.num + acoesCarga : ""}</td>
               <td>${pr.codigo}</td>
               <td>${pr.nome}</td>
-
-              <td class="qtd-cell">
-                ${Number(pr.quantidade).toLocaleString("pt-BR")}
-              </td>
-
+              <td class="qtd-cell">${Number(pr.quantidade).toLocaleString("pt-BR")}</td>
               <td>${pr.unidade || ""}</td>
             </tr>
           `;
         });
       }
-
       ant = carga.data;
     });
 
@@ -1612,15 +1416,13 @@
     });
   }
 
-  /* RENDERIZAÇÃO DOS CARDS COM FILTROS DE CARGA E PRODUTO */
+  /* RENDERIZAÇÃO DOS CARDS COM FILTROS E EDIÇÃO DE QTD */
   function renderResumo(lista) {
     const cnt = document.getElementById("cardsResumo");
     cnt.innerHTML = "";
 
     if (!lista.length) {
-      cnt.innerHTML = `
-        <div class="vazio">Nenhuma carga programada.</div>
-      `;
+      cnt.innerHTML = `<div class="vazio">Nenhuma carga programada.</div>`;
       return;
     }
 
@@ -1628,11 +1430,7 @@
 
     lista.forEach(c => {
       if (!porData[c.data]) {
-        porData[c.data] = {
-          produtos: {},
-          cargas: [],
-          produtosPorCarga: {}
-        };
+        porData[c.data] = { produtos: {}, cargas: [], produtosPorCarga: {} };
       }
 
       porData[c.data].cargas.push(c.num);
@@ -1640,92 +1438,57 @@
 
       c.produtos.forEach(p => {
         const k = `${p.codigo}||${p.nome}||${p.unidade || ""}`;
-
         if (!porData[c.data].produtos[k]) {
-          porData[c.data].produtos[k] = {
-            codigo: p.codigo,
-            nome: p.nome,
-            unidade: p.unidade,
-            total: 0
-          };
+          porData[c.data].produtos[k] = { codigo: p.codigo, nome: p.nome, unidade: p.unidade, total: 0 };
         }
-
-        porData[c.data].produtos[k].total +=
-          Number(p.quantidade) || 0;
+        porData[c.data].produtos[k].total += Number(p.quantidade) || 0;
       });
     });
 
     Object.keys(porData).sort().forEach(d => {
       const inf = porData[d];
-      const pDia =
-        dias.find(dia => dia.data === d)?.pesoLiquido || 0;
+      const pDia = dias.find(dia => dia.data === d)?.pesoLiquido || 0;
 
       const cargaFiltrada = filtroCargaPorDia[d];
-      const temFiltro =
-        cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
+      const temFiltro = cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
 
       let produtosParaMostrar;
 
       if (temFiltro) {
-        produtosParaMostrar = (
-          inf.produtosPorCarga[cargaFiltrada] || []
-        ).map(p => ({
+        produtosParaMostrar = (inf.produtosPorCarga[cargaFiltrada] || []).map(p => ({
           codigo: p.codigo,
           nome: p.nome,
           unidade: p.unidade,
-          total: Number(p.quantidade) || 0
+          total: Number(p.quantidade) || 0,
+          _indexOriginal: p._indexOriginal 
         }));
       } else {
         produtosParaMostrar = Object.values(inf.produtos);
       }
 
       const produtoFiltrado = filtroProdutoPorDia[d];
-      const produtoSelecionado = Object.values(inf.produtos).find(
-        p => chaveProduto(p) === produtoFiltrado
-      );
-
+      const produtoSelecionado = Object.values(inf.produtos).find(p => chaveProduto(p) === produtoFiltrado);
       const temFiltroProduto = Boolean(produtoSelecionado);
 
       const cargasParaMostrar = inf.cargas.filter(n =>
-        !temFiltroProduto ||
-        (inf.produtosPorCarga[String(n)] || []).some(
-          p => chaveProduto(p) === produtoFiltrado
-        )
+        !temFiltroProduto || (inf.produtosPorCarga[String(n)] || []).some(p => chaveProduto(p) === produtoFiltrado)
       );
 
       const tags = cargasParaMostrar
-        .sort((a, b) =>
-          String(a).localeCompare(
-            String(b),
-            undefined,
-            { numeric: true }
-          )
-        )
+        .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
         .map(n => {
           const nStr = String(n);
-          
-          // USA A NOVA FUNÇÃO
           const nomeCli = obterNomeCliente(d, n);
-          
           const cssClasse = nomeCli ? "has-cliente" : "";
           const ativa = temFiltro && nStr === String(cargaFiltrada);
 
           let onclick = `toggleFiltroCarga('${d}', '${nStr}')`;
+          if (nomeCli) onclick += `; mostrarCliente('${escapeHtml(nomeCli).replace(/'/g, "\\'")}')`;
 
-          if (nomeCli) {
-            onclick += `; mostrarCliente('${escapeHtml(nomeCli).replace(/'/g, "\\'")}')`;
-          }
-
-          const titleAttr = nomeCli
-            ? `title="Cliente: ${escapeHtml(nomeCli)}"`
-            : "";
+          const titleAttr = nomeCli ? `title="Cliente: ${escapeHtml(nomeCli)}"` : "";
 
           return `
-            <div
-              class="carga-tag ${cssClasse} ${ativa ? 'ativa' : ''}"
-              ${titleAttr}
-              onclick="${onclick}"
-            >
+            <div class="carga-tag ${cssClasse} ${ativa ? 'ativa' : ''}" ${titleAttr} onclick="${onclick}">
               <span>${n}</span>
               <div class="tag-actions">
                 <button class="tag-btn" onclick="event.stopPropagation(); transferirCarga('${d}', '${nStr}')" title="Transferir">↔</button>
@@ -1739,9 +1502,7 @@
       const htmlProdutos = produtosParaMostrar
         .sort((a, b) => a.nome.localeCompare(b.nome))
         .map(p => {
-          const produtoAtivo =
-            temFiltroProduto &&
-            chaveProduto(p) === produtoFiltrado;
+          const produtoAtivo = temFiltroProduto && chaveProduto(p) === produtoFiltrado;
 
           return `
             <div class="produto-linha">
@@ -1757,41 +1518,35 @@
                 ${escapeHtml(p.nome)}
               </button>
 
-              <span class="qtd">
+              <span class="qtd" style="display:flex; align-items:center; gap:6px;">
                 ${p.total.toLocaleString("pt-BR")}
                 <small>${p.unidade || ""}</small>
+                ${temFiltro ? `
+                  <button 
+                    class="btn-carga-acao" 
+                    style="padding:2px 4px; font-size:0.75rem; opacity:0.8;" 
+                    onclick="editarQuantidadeProduto('${d}', '${cargaFiltrada}', ${p._indexOriginal})" 
+                    title="Editar Quantidade Parcial">
+                    ✏️
+                  </button>
+                ` : ""}
               </span>
             </div>
           `;
         })
-        .join("") || `
-          <div class="produto-linha"><em>Sem produtos</em></div>
-        `;
+        .join("") || `<div class="produto-linha"><em>Sem produtos</em></div>`;
 
       const filtroHtml = temFiltro ? `
         <div class="filtro-ativo">
-          <span>
-            🔎 Filtrando carga <strong>${cargaFiltrada}</strong>
-          </span>
-
-          <button onclick="limparFiltroCarga('${d}')">
-            ✕ Limpar
-          </button>
+          <span>🔎 Filtrando carga <strong>${cargaFiltrada}</strong> (Modo de Edição Ativado)</span>
+          <button onclick="limparFiltroCarga('${d}')">✕ Limpar</button>
         </div>
       ` : "";
 
       const filtroProdutoHtml = temFiltroProduto ? `
         <div class="filtro-ativo">
-          <span>
-            🔎 Cargas com
-            <strong>${escapeHtml(produtoSelecionado.nome)}</strong>
-          </span>
-
-          <button
-            type="button"
-            data-dia="${escapeHtml(d)}"
-            data-limpar-produto
-          >✕ Limpar produto</button>
+          <span>🔎 Cargas com <strong>${escapeHtml(produtoSelecionado.nome)}</strong></span>
+          <button type="button" data-dia="${escapeHtml(d)}" data-limpar-produto>✕ Limpar produto</button>
         </div>
       ` : "";
 
@@ -1799,19 +1554,10 @@
         <div class="card-dia ${temFiltro || temFiltroProduto ? 'filtrado' : ''}">
           <div class="card-header">
             <span>${fmtData(d)} — ${diaSemana(d)}</span>
-
             <div class="card-header-actions">
-              ${pDia > 0
-                ? `<span class="badge-peso">${formatarPeso(pDia)} kg</span>`
-                : ""}
-
-              <span class="badge">
-                ${inf.cargas.length} carga(s)
-              </span>
-
-              <button class="btn-del-dia-card" data-data="${d}">
-                🗑
-              </button>
+              ${pDia > 0 ? `<span class="badge-peso">${formatarPeso(pDia)} kg</span>` : ""}
+              <span class="badge">${inf.cargas.length} carga(s)</span>
+              <button class="btn-del-dia-card" data-data="${d}">🗑</button>
             </div>
           </div>
 
@@ -1821,12 +1567,7 @@
             ${filtroProdutoHtml}
 
             <div class="cargas-lista">
-              <h4>
-                Nº das Cargas${temFiltroProduto
-                  ? ` (${cargasParaMostrar.length} de ${inf.cargas.length})`
-                  : ""}
-              </h4>
-
+              <h4>Nº das Cargas${temFiltroProduto ? ` (${cargasParaMostrar.length} de ${inf.cargas.length})` : ""}</h4>
               <div class="cargas-tags">${tags}</div>
             </div>
           </div>
@@ -1842,6 +1583,7 @@
   window.apagarCarga = apagarCarga;
   window.transferirCarga = transferirCarga;
   window.editarCliente = editarCliente;
+  window.editarQuantidadeProduto = editarQuantidadeProduto;
 </script>
 </body>
 </html>
