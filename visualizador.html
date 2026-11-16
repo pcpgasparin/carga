@@ -861,13 +861,16 @@
     writeBatch,
     updateDoc,
     setDoc,
+    getDoc,
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const SENHA_APAGAR = "pcp";
 
   let dias = [];
-  let mapeamentoClientes = {};
+  let mapeamentoClientes = {}; // Por data
+  let mapeamentoGlobal = {};   // Global (fallback)
+  
   let viewAtual = "detalhado";
   let filtroData = "";
   let unsubscribe = null;
@@ -900,7 +903,6 @@
     return `${d.getFullYear()}-${mm}-${dd}`;
   };
 
-  // Mantida a formatação original sem a divisão por 100
   const formatarPeso = (valor) => {
     const num = Number(valor || 0);
     return num.toLocaleString("pt-BR", {
@@ -918,12 +920,20 @@
       "'": "&#39;"
     }[c]));
 
-  // Usa os mesmos campos que identificam os produtos no resumo.
   const chaveProduto = (p) => JSON.stringify([
     String(p.codigo ?? ""),
     String(p.nome ?? ""),
     String(p.unidade || "")
   ]);
+
+  // NOVA FUNÇÃO: Busca o cliente pelo dia exato, se não achar usa o global
+  function obterNomeCliente(dataISO, numCarga) {
+    const numStr = String(numCarga);
+    if (mapeamentoClientes[dataISO] && mapeamentoClientes[dataISO][numStr]) {
+      return mapeamentoClientes[dataISO][numStr];
+    }
+    return mapeamentoGlobal[numStr] || null;
+  }
 
   /* TOAST DE CLIENTE */
   window.mostrarCliente = function(nome) {
@@ -1187,7 +1197,15 @@
       doc(db, "configuracoes", "mapeamento_cargas"),
       (docSnap) => {
         if (docSnap.exists()) {
-          mapeamentoClientes = docSnap.data();
+          const data = docSnap.data();
+          // Se tem o formato novo, usa. Se for o antigo, adapta.
+          if (data.porData) {
+            mapeamentoClientes = data.porData;
+            mapeamentoGlobal = data.global || {};
+          } else {
+            mapeamentoGlobal = data;
+            mapeamentoClientes = {};
+          }
           render();
         }
       }
@@ -1274,7 +1292,6 @@
       const refOrigem = doc(db, "cargas", dataOrigem);
       const refDestino = doc(db, "cargas", novaData);
 
-      // 1. REMOVER DO DIA DE ORIGEM
       const listaOrigemAtualizada = diaOrigem.cargas.filter(c => String(c.numeroCarga) !== String(numeroCarga));
       
       if (listaOrigemAtualizada.length === 0) {
@@ -1288,7 +1305,6 @@
         }, { merge: true });
       }
 
-      // 2. ADICIONAR NO DIA DE DESTINO
       const diaDestino = dias.find(d => d.data === novaData);
       let listaDestinoAtualizada = [];
       
@@ -1323,6 +1339,36 @@
     } catch (e) {
       alert("❌ Erro ao transferir carga: " + e.message);
       console.error(e);
+    }
+  }
+
+  /* NOVA FUNÇÃO: EDITAR CLIENTE */
+  async function editarCliente(dataISO, numeroCarga) {
+    const nomeAtual = obterNomeCliente(dataISO, numeroCarga) || "";
+    
+    const novoNome = prompt(`Editar cliente da carga #${numeroCarga} (${fmtData(dataISO)}):`, nomeAtual);
+    if (novoNome === null) return; // Cancelou
+
+    try {
+      const docRef = doc(db, "configuracoes", "mapeamento_cargas");
+      
+      const docSnap = await getDoc(docRef);
+      let data = docSnap.exists() ? docSnap.data() : {};
+      
+      if (!data.porData) data.porData = {};
+      if (!data.porData[dataISO]) data.porData[dataISO] = {};
+      
+      if (novoNome.trim() === "") {
+        delete data.porData[dataISO][numeroCarga];
+      } else {
+        data.porData[dataISO][numeroCarga] = novoNome.trim();
+      }
+      
+      await setDoc(docRef, data);
+      window.mostrarCliente(`✅ Cliente atualizado!`);
+      
+    } catch (e) {
+      alert("❌ Erro ao atualizar cliente: " + e.message);
     }
   }
 
@@ -1480,7 +1526,9 @@
         dias.find(d => d.data === carga.data)?.pesoLiquido || 0;
 
       const pesoFmt = pesoDia > 0 ? formatarPeso(pesoDia) : "";
-      const nomeCli = mapeamentoClientes[carga.num];
+      
+      // USA A NOVA FUNÇÃO
+      const nomeCli = obterNomeCliente(carga.data, carga.num);
       const cssClasse = nomeCli ? "has-cliente" : "";
 
       const titleAttr = nomeCli
@@ -1490,6 +1538,7 @@
       const acoesCarga = `
         <span class="carga-actions">
           <button class="btn-carga-acao" onclick="event.stopPropagation(); transferirCarga('${carga.data}', '${carga.num}')" title="Transferir para outro dia">↔</button>
+          <button class="btn-carga-acao" onclick="event.stopPropagation(); editarCliente('${carga.data}', '${carga.num}')" title="Editar Cliente">✏️</button>
           <button class="btn-carga-acao del" onclick="event.stopPropagation(); apagarCarga('${carga.data}', '${carga.num}')" title="Apagar apenas esta carga">🗑</button>
         </span>
       `;
@@ -1644,7 +1693,6 @@
         )
       );
 
-      /* Tags das cargas (apenas número + botões) */
       const tags = cargasParaMostrar
         .sort((a, b) =>
           String(a).localeCompare(
@@ -1655,7 +1703,10 @@
         )
         .map(n => {
           const nStr = String(n);
-          const nomeCli = mapeamentoClientes[n];
+          
+          // USA A NOVA FUNÇÃO
+          const nomeCli = obterNomeCliente(d, n);
+          
           const cssClasse = nomeCli ? "has-cliente" : "";
           const ativa = temFiltro && nStr === String(cargaFiltrada);
 
@@ -1790,6 +1841,7 @@
 
   window.apagarCarga = apagarCarga;
   window.transferirCarga = transferirCarga;
+  window.editarCliente = editarCliente;
 </script>
 </body>
 </html>
