@@ -444,7 +444,7 @@
 
   .produto-linha:last-child { border-bottom: none; }
   
-  /* NOVO CSS: ESTILO PARA PRODUTO ZERADO */
+  /* ESTILO PARA PRODUTO ZERADO */
   .produto-linha.zerado .p-nome,
   .produto-linha.zerado .qtd {
     opacity: 0.4;
@@ -874,9 +874,52 @@
 
   const SENHA_APAGAR = "pcp";
 
+  // =========================================================
+  // DICIONÁRIO DE PESOS POR CÓDIGO DE PRODUTO
+  // =========================================================
+  const PESOS_PRODUTOS = {
+    "671": 10,
+    "669": 30,
+    "1541": 25,
+    "210": 50,
+    "670": 30,
+    "7697": 25,
+    "745": 30,
+    "8489": 30,
+    "9000": 10,
+    "8517": 25,
+    "2517": 25,
+    "9009": 10,
+    "7708": 25,
+    "3112": 10,
+    "3113": 10,
+    "979": 10,
+    "8516": 25,
+    "0": 30,
+    "6377": 1000,
+    "730": 25,
+    "4864": 30,
+    "3235": 30,
+    "1688": 30,
+    "8487": 30,
+    "4852": 10,
+    "8488": 30,
+    "1691": 30,
+    "3114": 30,
+    "1690": 30,
+    "7677": 1000,
+    "7676": 1000,
+    "1081": 1000,
+    "1018": 1000,
+    "1888": 30,
+    "7771": 30,
+    "8486": 30
+  };
+  // =========================================================
+
   let dias = [];
-  let mapeamentoClientes = {}; // Por data
-  let mapeamentoGlobal = {};   // Global (fallback)
+  let mapeamentoClientes = {};
+  let mapeamentoGlobal = {};
   
   let viewAtual = "detalhado";
   let filtroData = "";
@@ -918,7 +961,6 @@
     String(p.codigo ?? ""), String(p.nome ?? ""), String(p.unidade || "")
   ]);
 
-  // Função para buscar o cliente pelo dia exato, se não achar usa o global
   function obterNomeCliente(dataISO, numCarga) {
     const numStr = String(numCarga);
     if (mapeamentoClientes[dataISO] && mapeamentoClientes[dataISO][numStr]) {
@@ -1241,7 +1283,7 @@
     } catch (e) { alert("❌ Erro ao atualizar cliente: " + e.message); }
   }
 
-  /* EDITAR QUANTIDADE DO PRODUTO */
+  /* EDITAR QUANTIDADE DO PRODUTO COM ABATIMENTO DE PESO */
   async function editarQuantidadeProduto(dataISO, numCarga, indexProduto) {
     const dia = dias.find(d => d.data === dataISO);
     if (!dia) return;
@@ -1259,16 +1301,42 @@
     if (isNaN(novaQtd) || novaQtd < 0) { alert("❌ Quantidade inválida."); return; }
     if (novaQtd === qtdAtual) return;
 
+    // PEGA O PESO UNITÁRIO DO DICIONÁRIO
+    const pesoUnitario = PESOS_PRODUTOS[String(produto.codigo)] || 0;
+    
+    // CALCULA A DIFERENÇA DE PESO (Se diminuiu, o delta será negativo. Se aumentou, positivo)
+    const deltaQtd = novaQtd - qtdAtual;
+    const deltaPeso = deltaQtd * pesoUnitario;
+
     try {
+      // 1. Atualiza a quantidade do produto
       produto.quantidade = novaQtd;
       
+      // 2. Atualiza o peso da carga
+      const novoPesoCarga = Number(carga.pesoLiquido || 0) + deltaPeso;
+      carga.pesoLiquido = Math.max(0, novoPesoCarga); // Garante que não fique negativo
+      
+      // 3. Atualiza o peso total do dia
+      let novoPesoDia = 0;
+      
+      // Recalcula o peso do dia inteiro para evitar erros de arredondamento
+      dia.cargas.forEach(c => {
+        if (String(c.numeroCarga) === String(numCarga)) {
+          novoPesoDia += carga.pesoLiquido; // Usa o peso atualizado
+        } else {
+          novoPesoDia += Number(c.pesoLiquido || c.peso || 0);
+        }
+      });
+
+      // Salva no Firebase
       const docRef = doc(db, "cargas", dataISO);
       await setDoc(docRef, {
         cargas: dia.cargas,
+        pesoLiquido: novoPesoDia,
         atualizadoEm: serverTimestamp()
       }, { merge: true });
 
-      window.mostrarCliente(`✅ Quantidade atualizada!`);
+      window.mostrarCliente(`✅ Quantidade e peso atualizados!`);
     } catch (e) {
       alert("❌ Erro ao editar quantidade: " + e.message);
     }
