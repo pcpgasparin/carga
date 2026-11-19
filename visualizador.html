@@ -376,6 +376,8 @@
     font-family: 'Consolas', monospace;
   }
 
+  .badge-peso.pendente { background: #f0a13a; }
+
   /* CARDS DE RESUMO */
   .cards {
     display: grid;
@@ -548,11 +550,16 @@
     border-color: #a9c9ef;
   }
 
-  .carga-tag.ativa {
-    background: #f0a13a;
-    color: #fff;
-    border-color: #d98a1f;
-    box-shadow: 0 2px 6px rgba(240,161,58,.4);
+  /* NOVO: CARGA CONCLUÍDA */
+  .carga-tag.concluida {
+    background: #e5f6ec;
+    color: #1f7a3f;
+    border-color: #c8e6d2;
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+  .carga-tag.concluida:hover {
+    background: #d1f0df;
   }
 
   .carga-tag .tag-actions {
@@ -611,7 +618,7 @@
   .filtro-ativo button:hover { background: #d98a1f; }
 
   /* BOTÕES DE LIXEIRA E MODAL */
-  .btn-del-dia, .btn-del-dia-card {
+  .btn-del-dia, .btn-del-dia-card, .btn-print-card {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -632,7 +639,7 @@
     transform: scale(1.15);
   }
 
-  .btn-del-dia-card {
+  .btn-del-dia-card, .btn-print-card {
     opacity: .55;
     color: #fff;
     font-size: 1rem;
@@ -644,11 +651,25 @@
     transform: scale(1.1);
   }
 
+  .btn-print-card:hover {
+    opacity: 1;
+    background: rgba(74,144,226,.9);
+    transform: scale(1.1);
+  }
+
   .data-cell .btn-del-dia {
     margin-left: 6px;
     vertical-align: middle;
   }
 
+  /* CHECKBOX DE CONCLUÍDO NA TAG */
+  .carga-tag input[type="checkbox"] {
+    margin-right: 2px;
+    cursor: pointer;
+    transform: scale(1.1);
+  }
+
+  /* MODAL */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -802,6 +823,14 @@
 
     .cards { grid-template-columns: 1fr; }
   }
+  
+  /* ESTILOS PARA IMPRESSÃO */
+  @media print {
+    body * { visibility: hidden; }
+    .card-dia.printing * { visibility: visible; }
+    .card-dia.printing { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 1px solid #ccc; }
+    .carga-actions, .btn-del-dia-card, .btn-print-card { display: none !important; }
+  }
 </style>
 </head>
 
@@ -874,48 +903,14 @@
 
   const SENHA_APAGAR = "pcp";
 
-  // =========================================================
-  // DICIONÁRIO DE PESOS POR CÓDIGO DE PRODUTO
-  // =========================================================
   const PESOS_PRODUTOS = {
-    "671": 10,
-    "669": 30,
-    "1541": 25,
-    "210": 50,
-    "670": 30,
-    "7697": 25,
-    "745": 30,
-    "8489": 30,
-    "9000": 10,
-    "8517": 25,
-    "2517": 25,
-    "9009": 10,
-    "7708": 25,
-    "3112": 10,
-    "3113": 10,
-    "979": 10,
-    "8516": 25,
-    "0": 30,
-    "6377": 1000,
-    "730": 25,
-    "4864": 30,
-    "3235": 30,
-    "1688": 30,
-    "8487": 30,
-    "4852": 10,
-    "8488": 30,
-    "1691": 30,
-    "3114": 30,
-    "1690": 30,
-    "7677": 1000,
-    "7676": 1000,
-    "1081": 1000,
-    "1018": 1000,
-    "1888": 30,
-    "7771": 30,
-    "8486": 30
+    "671": 10, "669": 30, "1541": 25, "210": 50, "670": 30, "7697": 25, "745": 30,
+    "8489": 30, "9000": 10, "8517": 25, "2517": 25, "9009": 10, "7708": 25, "3112": 10,
+    "3113": 10, "979": 10, "8516": 25, "0": 30, "6377": 1000, "730": 25, "4864": 30,
+    "3235": 30, "1688": 30, "8487": 30, "4852": 10, "8488": 30, "1691": 30, "3114": 30,
+    "1690": 30, "7677": 1000, "7676": 1000, "1081": 1000, "1018": 1000, "1888": 30,
+    "7771": 30, "8486": 30
   };
-  // =========================================================
 
   let dias = [];
   let mapeamentoClientes = {};
@@ -946,16 +941,12 @@
 
   const formatarPeso = (valor) => {
     const num = Number(valor || 0);
-    return num.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
+    return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const escapeHtml = (s) =>
-    String(s).replace(/[&<>"']/g, c => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[c]));
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
 
   const chaveProduto = (p) => JSON.stringify([
     String(p.codigo ?? ""), String(p.nome ?? ""), String(p.unidade || "")
@@ -974,12 +965,8 @@
     const toast = document.getElementById("toastCliente");
     toast.textContent = "🏢 " + nome;
     toast.classList.add("show");
-
     if (window.toastTimeout) clearTimeout(window.toastTimeout);
-
-    window.toastTimeout = setTimeout(() => {
-      toast.classList.remove("show");
-    }, 3000);
+    window.toastTimeout = setTimeout(() => { toast.classList.remove("show"); }, 3000);
   };
 
   /* FILTRO DE CARGA */
@@ -1040,7 +1027,6 @@
       document.body.appendChild(overlay);
       const input = overlay.querySelector("#modalSenhaInput");
       const erroEl = overlay.querySelector("#modalErro");
-
       setTimeout(() => input.focus(), 50);
 
       function fechar(resultado) {
@@ -1097,7 +1083,6 @@
       document.body.appendChild(overlay);
       const input = overlay.querySelector("#modalDataInput");
       const erroEl = overlay.querySelector("#modalErro");
-
       setTimeout(() => input.focus(), 50);
 
       function fechar(resultado) {
@@ -1301,34 +1286,24 @@
     if (isNaN(novaQtd) || novaQtd < 0) { alert("❌ Quantidade inválida."); return; }
     if (novaQtd === qtdAtual) return;
 
-    // PEGA O PESO UNITÁRIO DO DICIONÁRIO
     const pesoUnitario = PESOS_PRODUTOS[String(produto.codigo)] || 0;
-    
-    // CALCULA A DIFERENÇA DE PESO (Se diminuiu, o delta será negativo. Se aumentou, positivo)
     const deltaQtd = novaQtd - qtdAtual;
     const deltaPeso = deltaQtd * pesoUnitario;
 
     try {
-      // 1. Atualiza a quantidade do produto
       produto.quantidade = novaQtd;
-      
-      // 2. Atualiza o peso da carga
       const novoPesoCarga = Number(carga.pesoLiquido || 0) + deltaPeso;
-      carga.pesoLiquido = Math.max(0, novoPesoCarga); // Garante que não fique negativo
+      carga.pesoLiquido = Math.max(0, novoPesoCarga); 
       
-      // 3. Atualiza o peso total do dia
       let novoPesoDia = 0;
-      
-      // Recalcula o peso do dia inteiro para evitar erros de arredondamento
       dia.cargas.forEach(c => {
         if (String(c.numeroCarga) === String(numCarga)) {
-          novoPesoDia += carga.pesoLiquido; // Usa o peso atualizado
+          novoPesoDia += carga.pesoLiquido;
         } else {
           novoPesoDia += Number(c.pesoLiquido || c.peso || 0);
         }
       });
 
-      // Salva no Firebase
       const docRef = doc(db, "cargas", dataISO);
       await setDoc(docRef, {
         cargas: dia.cargas,
@@ -1341,6 +1316,48 @@
       alert("❌ Erro ao editar quantidade: " + e.message);
     }
   }
+
+  /* MARCAR CARGA COMO CONCLUÍDA */
+  async function toggleCargaConcluida(dataISO, numeroCarga) {
+    const dia = dias.find(d => d.data === dataISO);
+    if (!dia) return;
+
+    let concluidas = dia.cargasConcluidas || [];
+    const numStr = String(numeroCarga);
+
+    if (concluidas.includes(numStr)) {
+      concluidas = concluidas.filter(n => n !== numStr);
+    } else {
+      concluidas.push(numStr);
+    }
+
+    try {
+      const docRef = doc(db, "cargas", dataISO);
+      await updateDoc(docRef, { cargasConcluidas: concluidas });
+    } catch (e) {
+      alert("❌ Erro ao marcar carga: " + e.message);
+    }
+  }
+
+  /* IMPRIMIR CARD */
+  window.imprimirCard = function(dataISO) {
+    const cardOriginal = document.querySelector(`.card-dia[data-data="${dataISO}"]`);
+    if (!cardOriginal) return;
+
+    // Remove a classe de impressão de qualquer outro card que possa ter ficado
+    document.querySelectorAll('.card-dia').forEach(c => c.classList.remove('printing'));
+
+    // Adiciona a classe no card que será impresso
+    cardOriginal.classList.add('printing');
+
+    // Abre a janela de impressão
+    window.print();
+
+    // Limpa a classe após a impressão
+    setTimeout(() => {
+      cardOriginal.classList.remove('printing');
+    }, 1000);
+  };
 
   document.getElementById("btnLimparPassados").addEventListener("click", async () => {
     const passados = dias.filter(d => d.data < hojeISO());
@@ -1522,7 +1539,19 @@
 
     Object.keys(porData).sort().forEach(d => {
       const inf = porData[d];
-      const pDia = dias.find(dia => dia.data === d)?.pesoLiquido || 0;
+      const diaInfo = dias.find(dia => dia.data === d);
+      const pDiaOriginal = diaInfo?.pesoLiquido || 0;
+      const cargasConcluidas = diaInfo?.cargasConcluidas || [];
+
+      // Cálculo de Peso Pendente
+      let pesoConcluido = 0;
+      inf.cargas.forEach(n => {
+        if (cargasConcluidas.includes(String(n))) {
+          const cargaObj = lista.find(c => c.data === d && String(c.num) === String(n));
+          if (cargaObj) pesoConcluido += Number(cargaObj.pesoLiquido);
+        }
+      });
+      const pesoPendente = Math.max(0, pDiaOriginal - pesoConcluido);
 
       const cargaFiltrada = filtroCargaPorDia[d];
       const temFiltro = cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
@@ -1538,7 +1567,16 @@
           _indexOriginal: p._indexOriginal 
         }));
       } else {
-        produtosParaMostrar = Object.values(inf.produtos);
+        // Se não tem filtro, mostra todos os produtos, mas filtra os que pertencem a cargas concluídas
+        const produtosAgrupados = Object.values(inf.produtos);
+        produtosParaMostrar = produtosAgrupados.filter(p => {
+          // Verifica se o produto pertence APENAS a cargas concluídas
+          const cargasComProduto = inf.cargas.filter(n => 
+            (inf.produtosPorCarga[String(n)] || []).some(prod => chaveProduto(prod) === chaveProduto(p))
+          );
+          const todasConcluidas = cargasComProduto.every(n => cargasConcluidas.includes(String(n)));
+          return !todasConcluidas;
+        });
       }
 
       const produtoFiltrado = filtroProdutoPorDia[d];
@@ -1556,6 +1594,7 @@
           const nomeCli = obterNomeCliente(d, n);
           const cssClasse = nomeCli ? "has-cliente" : "";
           const ativa = temFiltro && nStr === String(cargaFiltrada);
+          const concluida = cargasConcluidas.includes(nStr);
 
           let onclick = `toggleFiltroCarga('${d}', '${nStr}')`;
           if (nomeCli) onclick += `; mostrarCliente('${escapeHtml(nomeCli).replace(/'/g, "\\'")}')`;
@@ -1563,7 +1602,8 @@
           const titleAttr = nomeCli ? `title="Cliente: ${escapeHtml(nomeCli)}"` : "";
 
           return `
-            <div class="carga-tag ${cssClasse} ${ativa ? 'ativa' : ''}" ${titleAttr} onclick="${onclick}">
+            <div class="carga-tag ${cssClasse} ${ativa ? 'ativa' : ''} ${concluida ? 'concluida' : ''}" ${titleAttr} onclick="${onclick}">
+              <input type="checkbox" ${concluida ? 'checked' : ''} onclick="event.stopPropagation(); toggleCargaConcluida('${d}', '${nStr}')" title="Marcar como Carregada">
               <span>${n}</span>
               <div class="tag-actions">
                 <button class="tag-btn" onclick="event.stopPropagation(); transferirCarga('${d}', '${nStr}')" title="Transferir">↔</button>
@@ -1574,10 +1614,10 @@
         })
         .join("");
 
-      // FILTRA OS ZERADOS SE NÃO ESTIVER NO MODO DE EDIÇÃO
+      // Filtra os zerados se não estiver no modo de edição
       const produtosVisiveis = produtosParaMostrar.filter(p => {
-        if (temFiltro) return true; // No modo edição, mostra tudo
-        return p.total > 0;         // No modo normal, esconde os zerados
+        if (temFiltro) return true; 
+        return p.total > 0;         
       });
 
       const htmlProdutos = produtosVisiveis
@@ -1635,12 +1675,13 @@
       ` : "";
 
       cnt.innerHTML += `
-        <div class="card-dia ${temFiltro || temFiltroProduto ? 'filtrado' : ''}">
+        <div class="card-dia ${temFiltro || temFiltroProduto ? 'filtrado' : ''}" data-data="${d}">
           <div class="card-header">
             <span>${fmtData(d)} — ${diaSemana(d)}</span>
             <div class="card-header-actions">
-              ${pDia > 0 ? `<span class="badge-peso">${formatarPeso(pDia)} kg</span>` : ""}
+              ${pDiaOriginal > 0 ? `<span class="badge-peso ${pesoPendente < pDiaOriginal ? 'pendente' : ''}" title="Peso total original: ${formatarPeso(pDiaOriginal)} kg">${formatarPeso(pesoPendente)} kg</span>` : ""}
               <span class="badge">${inf.cargas.length} carga(s)</span>
+              <button class="btn-print-card" onclick="imprimirCard('${d}')" title="Imprimir Relatório">🖨️</button>
               <button class="btn-del-dia-card" data-data="${d}">🗑</button>
             </div>
           </div>
@@ -1668,6 +1709,7 @@
   window.transferirCarga = transferirCarga;
   window.editarCliente = editarCliente;
   window.editarQuantidadeProduto = editarQuantidadeProduto;
+  window.toggleCargaConcluida = toggleCargaConcluida;
 </script>
 </body>
 </html>
