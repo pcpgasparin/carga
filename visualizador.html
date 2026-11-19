@@ -617,7 +617,7 @@
 
   .filtro-ativo button:hover { background: #d98a1f; }
 
-  /* BOTÕES DE LIXEIRA E MODAL */
+  /* BOTÕES DE LIXEIRA, IMPRESSÃO E MODAL */
   .btn-del-dia, .btn-del-dia-card, .btn-print-card {
     background: transparent;
     border: none;
@@ -829,7 +829,7 @@
     body * { visibility: hidden; }
     .card-dia.printing * { visibility: visible; }
     .card-dia.printing { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 1px solid #ccc; }
-    .carga-actions, .btn-del-dia-card, .btn-print-card { display: none !important; }
+    .carga-actions, .btn-del-dia-card, .btn-print-card, .cargas-lista { display: none !important; }
   }
 </style>
 </head>
@@ -1344,16 +1344,10 @@
     const cardOriginal = document.querySelector(`.card-dia[data-data="${dataISO}"]`);
     if (!cardOriginal) return;
 
-    // Remove a classe de impressão de qualquer outro card que possa ter ficado
     document.querySelectorAll('.card-dia').forEach(c => c.classList.remove('printing'));
-
-    // Adiciona a classe no card que será impresso
     cardOriginal.classList.add('printing');
-
-    // Abre a janela de impressão
     window.print();
 
-    // Limpa a classe após a impressão
     setTimeout(() => {
       cardOriginal.classList.remove('printing');
     }, 1000);
@@ -1543,7 +1537,7 @@
       const pDiaOriginal = diaInfo?.pesoLiquido || 0;
       const cargasConcluidas = diaInfo?.cargasConcluidas || [];
 
-      // Cálculo de Peso Pendente
+      // --- CÁLCULO DO PESO PENDENTE ---
       let pesoConcluido = 0;
       inf.cargas.forEach(n => {
         if (cargasConcluidas.includes(String(n))) {
@@ -1567,16 +1561,22 @@
           _indexOriginal: p._indexOriginal 
         }));
       } else {
-        // Se não tem filtro, mostra todos os produtos, mas filtra os que pertencem a cargas concluídas
-        const produtosAgrupados = Object.values(inf.produtos);
-        produtosParaMostrar = produtosAgrupados.filter(p => {
-          // Verifica se o produto pertence APENAS a cargas concluídas
-          const cargasComProduto = inf.cargas.filter(n => 
-            (inf.produtosPorCarga[String(n)] || []).some(prod => chaveProduto(prod) === chaveProduto(p))
-          );
-          const todasConcluidas = cargasComProduto.every(n => cargasConcluidas.includes(String(n)));
-          return !todasConcluidas;
+        // Recalcula os produtos do dia IGNORANDO as cargas concluídas
+        const produtosNaoConcluidos = {};
+        
+        inf.cargas.forEach(n => {
+          if (cargasConcluidas.includes(String(n))) return; // Pula as cargas concluídas
+          
+          (inf.produtosPorCarga[String(n)] || []).forEach(p => {
+            const k = `${p.codigo}||${p.nome}||${p.unidade || ""}`;
+            if (!produtosNaoConcluidos[k]) {
+              produtosNaoConcluidos[k] = { codigo: p.codigo, nome: p.nome, unidade: p.unidade, total: 0 };
+            }
+            produtosNaoConcluidos[k].total += Number(p.quantidade) || 0;
+          });
         });
+
+        produtosParaMostrar = Object.values(produtosNaoConcluidos);
       }
 
       const produtoFiltrado = filtroProdutoPorDia[d];
