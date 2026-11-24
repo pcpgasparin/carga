@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Importador de Cargas e Clientes</title>
 <style>
-  /* =========================================================
-     VARIÁVEIS DE COR E ESTILO GLOBAL
-     ========================================================= */
+  /* ... (todo o seu CSS original permanece igual) ... */
   :root {
     --bg-color: #f4f7f6;
     --box-bg: #ffffff;
@@ -29,9 +27,6 @@
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
   body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; padding-bottom: 2rem; }
 
-  /* =========================================================
-     CABEÇALHO
-     ========================================================= */
   header {
     background-color: var(--box-bg); padding: 1rem 5%; display: flex;
     justify-content: space-between; align-items: center; box-shadow: var(--shadow);
@@ -40,9 +35,6 @@
   h1 { font-size: 1.5rem; color: var(--text-main); }
   .header-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
   
-  /* =========================================================
-     SISTEMA DE ABAS
-     ========================================================= */
   main { max-width: 1000px; margin: 0 auto; padding: 0 1rem; }
   .tabs-nav { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
   .tab-btn {
@@ -56,16 +48,10 @@
   .tab-content.active { display: flex; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* =========================================================
-     LAYOUT GERAL DOS BOXES
-     ========================================================= */
   .box { background: var(--box-bg); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); }
   .box h2 { font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--primary); border-bottom: 2px solid var(--bg-color); padding-bottom: 0.5rem; }
   .help { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; }
 
-  /* =========================================================
-     BOTÕES E STATUS
-     ========================================================= */
   button, .btn-nav {
     padding: 0.6rem 1.2rem; border: none; border-radius: var(--radius); cursor: pointer;
     font-weight: 600; font-size: 0.9rem; transition: background 0.2s, opacity 0.2s;
@@ -93,9 +79,6 @@
   .status { padding: 0.3rem 0.6rem; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
   .status.ok { background: #d1fae5; color: #065f46; }
 
-  /* =========================================================
-     TEXTAREA (Aba de Texto)
-     ========================================================= */
   .textarea-clientes {
     width: 100%; height: 280px; padding: 1rem; border: 1px solid var(--border-color);
     border-radius: var(--radius); font-family: monospace; font-size: 0.95rem;
@@ -103,9 +86,6 @@
   }
   .textarea-clientes:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
-  /* =========================================================
-     INPUTS E LISTAS (Aba de PDF)
-     ========================================================= */
   input[type="file"] { width: 100%; padding: 0.8rem; border: 2px dashed var(--border-color); border-radius: var(--radius); background: var(--bg-color); cursor: pointer; }
   .info { margin-top: 0.5rem; font-size: 0.9rem; font-weight: bold; }
   .lista-arquivos { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1rem; }
@@ -135,9 +115,6 @@
   .check-linha span { display: flex; flex-direction: column; }
   .check-linha small { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem; }
 
-  /* =========================================================
-     PREVIEW
-     ========================================================= */
   .preview { max-height: 400px; overflow-y: auto; padding-right: 0.5rem; }
   .preview-dia { border-left: 4px solid var(--primary); padding-left: 1rem; margin-bottom: 1.5rem; }
   .preview-dia-header { display: flex; justify-content: space-between; background: var(--bg-color); padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; }
@@ -153,9 +130,6 @@
   .tbl-preview th { background: var(--bg-color); color: var(--text-muted); }
   .tbl-preview .num { text-align: right; font-family: monospace; font-size: 0.9rem; }
 
-  /* =========================================================
-     MODAL DE SENHA
-     ========================================================= */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 1; transition: opacity 0.15s; }
   .modal-overlay.fechando { opacity: 0; }
   .modal-box { background: #fff; width: 90%; max-width: 400px; border-radius: var(--radius); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); overflow: hidden; }
@@ -172,7 +146,6 @@
   .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
   @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-  /* RESPONSIVIDADE */
   @media (max-width: 600px) {
     .item-pdf { flex-direction: column; align-items: flex-start; }
     .item-data { width: 100%; justify-content: space-between; }
@@ -193,13 +166,11 @@
 </header>
 
 <main>
-  <!-- NAVEGAÇÃO DAS ABAS -->
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="tab-pdf">📄 Importar PDFs</button>
     <button class="tab-btn" data-tab="tab-texto">✍️ Rotas/Clientes</button>
   </div>
 
-  <!-- ABA 1: PDF -->
   <div id="tab-pdf" class="tab-content active">
     <section class="box">
       <h2>1. Selecionar PDFs</h2>
@@ -238,12 +209,11 @@
     </section>
   </div>
 
-  <!-- ABA 2: COLAR CLIENTES/ROTAS -->
   <div id="tab-texto" class="tab-content">
     <section class="box">
       <h2>Mapeamento de Cargas e Clientes (PROCV)</h2>
       <p class="help">
-        Cole aqui os textos do WhatsApp ou e-mail. O sistema vai extrair automaticamente os dias (ex: TERÇA 17/11) e vincular a carga ao cliente daquele dia específico. Não se preocupe com os dias da semana escritos.
+        Cole aqui os textos do WhatsApp ou e-mail. O sistema vai extrair automaticamente os dias (ex: TERÇA 17/11) e vincular a carga ao cliente daquele dia específico.
       </p>
       
       <textarea id="textoClientes" class="textarea-clientes" placeholder="Exemplo:&#10;TERÇA 17/11&#10;21795 - TAPERA + PASSO FUNDO - faé&#10;21739 - CLIENTE RETIRA...&#10;&#10;QUARTA 18/11&#10;21794 - PASSARELA - ERECHIM VAN"></textarea>
@@ -267,22 +237,15 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   const SENHA_ADMIN = "pcp";
 
-  // =========================================================
-  // NAVEGAÇÃO DAS ABAS
-  // =========================================================
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
     });
   });
 
-  // =========================================================
-  // LÓGICA DA ABA 2: MAPEAMENTO DE CLIENTES POR DIA
-  // =========================================================
   document.getElementById("btnSalvarClientes").addEventListener("click", async () => {
     const texto = document.getElementById("textoClientes").value;
     const statusCli = document.getElementById("statusClientes");
@@ -297,43 +260,35 @@
     statusCli.className = "status-msg";
 
     const linhas = texto.split('\n');
-    const mapaGlobal = {}; // Formato antigo (fallback)
-    const mapaPorData = {}; // Novo formato (por dia)
+    const mapaGlobal = {};
+    const mapaPorData = {};
     
     let dataAtual = null;
     let qtdEncontrada = 0;
 
-    // Regex para capturar cabeçalhos de data: "TERÇA 17/11", "QUARTA-FEIRA 18/11", etc.
     const reData = /(SEGUNDA|TERÇA|QUARTA|QUINTA|SEXTA|SÁBADO|DOMINGO)?(?:\s*-?\s*FEIRA)?\s*(\d{2})\/(\d{2})/i;
-    
-    // Regex para capturar a carga e o cliente
     const reCarga = /^(\d{4,6})[\s\-–—]*(.+)$/;
 
     linhas.forEach(linha => {
       linha = linha.trim();
       if (!linha) return;
 
-      // 1. Verifica se a linha é uma data (ex: TERÇA 17/11)
       const matchData = linha.match(reData);
       if (matchData) {
         const dia = matchData[2];
         const mes = matchData[3];
-        // Assume o ano atual
         const ano = new Date().getFullYear();
         dataAtual = `${ano}-${mes}-${dia}`;
-        return; // Pula para a próxima linha
+        return;
       }
 
-      // 2. Verifica se a linha é uma carga
       const matchCarga = linha.match(reCarga);
       if (matchCarga) {
         const numCarga = matchCarga[1];
         const nomeCliente = matchCarga[2].trim();
         
-        // Salva no global
         mapaGlobal[numCarga] = nomeCliente;
         
-        // Salva na data específica
         if (dataAtual) {
           if (!mapaPorData[dataAtual]) mapaPorData[dataAtual] = {};
           mapaPorData[dataAtual][numCarga] = nomeCliente;
@@ -351,8 +306,6 @@
 
     try {
       const docRef = doc(db, "configuracoes", "mapeamento_cargas");
-      
-      // Salva os dois mapas no banco. 
       await setDoc(docRef, { 
         global: mapaGlobal,
         porData: mapaPorData
@@ -368,9 +321,6 @@
     }
   });
 
-  // =========================================================
-  // FUNÇÕES DE UTILIDADE E SEGURANÇA
-  // =========================================================
   function pedirSenha(titulo, mensagem) {
     return new Promise((resolve) => {
       const overlay = document.createElement("div"); 
@@ -437,9 +387,6 @@
     return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); 
   }
 
-  // =========================================================
-  // LÓGICA DA ABA 1: PROCESSAMENTO DE PDF
-  // =========================================================
   let itens = [];
   const pdfInput = document.getElementById("pdfInput");
   const infoEl = document.getElementById("info");
@@ -645,15 +592,18 @@
     return out;
   }
 
+  // =========================================================
+  // FUNÇÃO CORRIGIDA: PARSEAR TEXTO (BLINDADA CONTRA O 2517)
+  // =========================================================
   function parsearTexto(texto) {
     const linhas = texto.split("\n");
     const cargas = []; 
     let cargaAtual = null, descPendente = null;
     
-    // Regex mais flexível: o nome do produto pode conter números e vírgulas (ex: 1,10)
-    // Ele vai parar de capturar o nome quando encontrar um espaço seguido de números com vírgula (a quantidade)
-    const reCDQ = /^(\d{3,6})\s+(.+?)\s+([\d]{1,3}(?:\.[\d]{3})*,\d+)\s+([A-Z0-9]{2,4})/;
-    const reCQ = /^(\d{3,6})\s+([\d]{1,3}(?:\.[\d]{3})*,\d+)\s+([A-Z0-9]{2,4})/;
+    // CORREÇÃO: A quantidade agora exige a estrutura EXATA da Wonder Systems: 4 casas decimais (ex: 50,0000)
+    // Assim, o "1,10" do nome do produto não é confundido com a quantidade.
+    const reCDQ = /^(\d{3,6})\s+(.+?)\s+(\d{1,3}(?:\.\d{3})*,\d{4})\s+([A-Z0-9]{2,4})/;
+    const reCQ = /^(\d{3,6})\s+(\d{1,3}(?:\.\d{3})*,\d{4})\s+([A-Z0-9]{2,4})/;
     const reTotal = /^Total:\s+[\d.,]+\s+([\d.]+,\d+)/i;
     
     const reCargaNum = /^Carga:\s+(\d+)\s*$/i;
