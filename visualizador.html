@@ -1548,11 +1548,26 @@
       const pesoPendente = Math.max(0, pDiaOriginal - pesoConcluido);
 
       const cargaFiltrada = filtroCargaPorDia[d];
-      const temFiltro = cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
+      const temFiltroCarga = cargaFiltrada && inf.produtosPorCarga[cargaFiltrada];
 
-      let produtosParaMostrar;
+      const produtoFiltrado = filtroProdutoPorDia[d];
+      const produtoSelecionado = Object.values(inf.produtos).find(p => chaveProduto(p) === produtoFiltrado);
+      const temFiltroProduto = Boolean(produtoSelecionado);
 
-      if (temFiltro) {
+      // Filtra quais cargas devem aparecer
+      const cargasParaMostrar = inf.cargas.filter(n => {
+        if (temFiltroCarga && String(n) !== String(cargaFiltrada)) return false;
+        if (temFiltroProduto) {
+          return (inf.produtosPorCarga[String(n)] || []).some(p => chaveProduto(p) === produtoFiltrado);
+        }
+        return true;
+      });
+
+      // --- LISTA DE PRODUTOS A MOSTRAR ---
+      let produtosParaMostrar = [];
+
+      if (temFiltroCarga) {
+        // Se uma carga foi selecionada, mostra os produtos dela
         produtosParaMostrar = (inf.produtosPorCarga[cargaFiltrada] || []).map(p => ({
           codigo: p.codigo,
           nome: p.nome,
@@ -1561,39 +1576,30 @@
           _indexOriginal: p._indexOriginal 
         }));
       } else {
-        // Recalcula os produtos do dia IGNORANDO as cargas concluídas
-        const produtosNaoConcluidos = {};
-        
-        inf.cargas.forEach(n => {
-          if (cargasConcluidas.includes(String(n))) return; // Pula as cargas concluídas
+        // Se não tem carga filtrada, recalcula os produtos com base nas cargas que devem aparecer
+        const produtosAgrupados = {};
+        cargasParaMostrar.forEach(n => {
+          if (cargasConcluidas.includes(String(n))) return; // Pula cargas concluídas
           
           (inf.produtosPorCarga[String(n)] || []).forEach(p => {
-            const k = `${p.codigo}||${p.nome}||${p.unidade || ""}`;
-            if (!produtosNaoConcluidos[k]) {
-              produtosNaoConcluidos[k] = { codigo: p.codigo, nome: p.nome, unidade: p.unidade, total: 0 };
+            const k = chaveProduto(p);
+            if (!produtosAgrupados[k]) {
+              produtosAgrupados[k] = { codigo: p.codigo, nome: p.nome, unidade: p.unidade, total: 0 };
             }
-            produtosNaoConcluidos[k].total += Number(p.quantidade) || 0;
+            produtosAgrupados[k].total += Number(p.quantidade) || 0;
           });
         });
-
-        produtosParaMostrar = Object.values(produtosNaoConcluidos);
+        produtosParaMostrar = Object.values(produtosAgrupados);
       }
 
-      const produtoFiltrado = filtroProdutoPorDia[d];
-      const produtoSelecionado = Object.values(inf.produtos).find(p => chaveProduto(p) === produtoFiltrado);
-      const temFiltroProduto = Boolean(produtoSelecionado);
-
-      const cargasParaMostrar = inf.cargas.filter(n =>
-        !temFiltroProduto || (inf.produtosPorCarga[String(n)] || []).some(p => chaveProduto(p) === produtoFiltrado)
-      );
-
+      // Tags de Cargas
       const tags = cargasParaMostrar
         .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
         .map(n => {
           const nStr = String(n);
           const nomeCli = obterNomeCliente(d, n);
           const cssClasse = nomeCli ? "has-cliente" : "";
-          const ativa = temFiltro && nStr === String(cargaFiltrada);
+          const ativa = temFiltroCarga && nStr === String(cargaFiltrada);
           const concluida = cargasConcluidas.includes(nStr);
 
           let onclick = `toggleFiltroCarga('${d}', '${nStr}')`;
@@ -1614,11 +1620,8 @@
         })
         .join("");
 
-      // Filtra os zerados se não estiver no modo de edição
-      const produtosVisiveis = produtosParaMostrar.filter(p => {
-        if (temFiltro) return true; 
-        return p.total > 0;         
-      });
+      // Renderiza os Produtos
+      const produtosVisiveis = produtosParaMostrar.filter(p => temFiltroCarga || p.total > 0);
 
       const htmlProdutos = produtosVisiveis
         .sort((a, b) => a.nome.localeCompare(b.nome))
@@ -1643,7 +1646,7 @@
               <span class="qtd" style="display:flex; align-items:center; gap:6px;">
                 ${p.total.toLocaleString("pt-BR")}
                 <small>${p.unidade || ""}</small>
-                ${temFiltro ? `
+                ${temFiltroCarga ? `
                   <button 
                     class="btn-carga-acao" 
                     style="padding:2px 4px; font-size:0.75rem; opacity:0.8;" 
@@ -1660,7 +1663,7 @@
           <div class="produto-linha"><em>Nenhum produto ativo.</em></div>
         `;
 
-      const filtroHtml = temFiltro ? `
+      const filtroHtml = temFiltroCarga ? `
         <div class="filtro-ativo">
           <span>🔎 Filtrando carga <strong>${cargaFiltrada}</strong> (Modo de Edição Ativado)</span>
           <button onclick="limparFiltroCarga('${d}')">✕ Limpar</button>
@@ -1675,7 +1678,7 @@
       ` : "";
 
       cnt.innerHTML += `
-        <div class="card-dia ${temFiltro || temFiltroProduto ? 'filtrado' : ''}" data-data="${d}">
+        <div class="card-dia ${temFiltroCarga || temFiltroProduto ? 'filtrado' : ''}" data-data="${d}">
           <div class="card-header">
             <span>${fmtData(d)} — ${diaSemana(d)}</span>
             <div class="card-header-actions">
